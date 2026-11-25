@@ -90,3 +90,9 @@ Votes only count for the room currently on screen, and never for your own.
 > **Note:** this code was written without access to Roblox Studio, so it hasn't been run yet.
 > If anything errors on the first Play, copy the red text from the **Output** window and paste it
 > to Claude to get a fix.
+
+## Screen preview (no Studio needed)
+`preview/design-to-impress-preview.html` is a phone-friendly walkthrough of every screen (lobby,
+theme reveal, design phase, voting, results, and a shop mock-up), drawn from these scripts.
+PNGs of each screen are in `preview/screens/`. To rebuild after changing the scripts:
+`python3 preview/build_preview.py && node preview/export_pngs.js`.

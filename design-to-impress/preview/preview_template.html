@@ -1,0 +1,712 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design to Impress Preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Montserrat:wght@700&family=Noto+Color+Emoji&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f6f3fa; --card: #ffffff; --ink: #1d1530; --muted: #5f5675; --line: #e3dcef;
+  --accent: #d6458f; --chip: #efe8f7; --chip-on: #2b1f45; --chip-on-ink: #ffffff; --warn: #8a5a00; --warn-bg: #fff4dc;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #120d1c; --card: #1c1529; --ink: #f2edf9; --muted: #b3a8c8; --line: #2f2542;
+    --accent: #ff6eb4; --chip: #2a2040; --chip-on: #ff6eb4; --chip-on-ink: #1a0f22; --warn: #ffd27a; --warn-bg: #33270f;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #120d1c; --card: #1c1529; --ink: #f2edf9; --muted: #b3a8c8; --line: #2f2542;
+  --accent: #ff6eb4; --chip: #2a2040; --chip-on: #ff6eb4; --chip-on-ink: #1a0f22; --warn: #ffd27a; --warn-bg: #33270f;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+.page { max-width: 920px; margin: 0 auto; padding: 16px; }
+header h1 { font: 24px/1.2 "Fredoka One", system-ui, sans-serif; margin: 4px 0 2px; }
+header p { margin: 0 0 12px; color: var(--muted); font-size: 14px; }
+.steps { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 10px; scrollbar-width: none; }
+.steps button, .sub button, .nav button {
+  border: 0; border-radius: 999px; padding: 8px 14px; font: 600 14px system-ui, sans-serif; cursor: pointer;
+  background: var(--chip); color: var(--ink); white-space: nowrap; min-height: 38px;
+}
+.steps button.on, .sub button.on { background: var(--chip-on); color: var(--chip-on-ink); }
+.frame { background: #0c0812; border-radius: 22px; padding: 8px; box-shadow: 0 6px 24px rgba(0,0,0,.25); }
+.viewport { position: relative; width: 100%; overflow: hidden; border-radius: 15px; }
+#stage { position: absolute; left: 0; top: 0; width: 844px; height: 390px; transform-origin: 0 0; overflow: hidden; background: #8fc4f0; }
+.rotate-hint { color: var(--muted); font-size: 12px; text-align: center; margin: 6px 0 0; }
+.sub { display: flex; gap: 6px; flex-wrap: wrap; margin: 12px 0 0; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; margin-top: 12px; }
+.card h2 { font: 20px/1.25 "Fredoka One", system-ui, sans-serif; margin: 0 0 6px; }
+.card h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 14px 0 4px; }
+.card ul { margin: 0; padding-left: 20px; }
+.card li { margin: 3px 0; }
+.card code { font-size: 12.5px; background: var(--chip); padding: 1px 5px; border-radius: 5px; }
+.issue { background: var(--warn-bg); color: var(--warn); border-radius: 10px; padding: 8px 12px; margin-top: 8px; font-size: 14px; }
+.nav { display: flex; justify-content: space-between; margin-top: 12px; gap: 8px; }
+.nav button { flex: 1; }
+
+/* ---------- in-game GUI (sizes in Roblox pixels) ---------- */
+#stage svg { position: absolute; inset: 0; }
+.gui { position: absolute; left: 0; top: 58px; width: 844px; height: 332px; }
+.core { position: absolute; inset: 0; pointer-events: none; }
+.g { position: absolute; }
+.t { position: absolute; display: flex; align-items: center; justify-content: center; text-align: center;
+     font-family: "Fredoka One", "Noto Color Emoji", sans-serif; color: #fff; line-height: 1.05; white-space: pre-wrap; overflow: hidden; }
+.t.left { justify-content: flex-start; text-align: left; }
+.t.right { justify-content: flex-end; text-align: right; }
+.t.bottom { align-items: flex-end; }
+.btn { position: absolute; border-radius: 10px; background: rgb(60,45,90); cursor: pointer; }
+.btn .t { inset: 4px 6px; }
+.t .s { display: inline-block; max-width: 100%; }
+.panel { background: rgba(35,25,55,.95); }
+</style>
+</head>
+<body>
+<div class="page" id="page">
+  <header>
+    <h1>Design to Impress · screen preview</h1>
+    <p>Each screen is drawn from the game's Luau scripts, using the same themes, the 30 catalogue items, UI text, sizes, colours and timers. You play as <b>Sam</b>, with Ava, Leo and Mia. Shown on an 844 × 390 phone screen held sideways, the usual way to play Roblox on mobile.</p>
+  </header>
+  <nav class="steps" id="steps"></nav>
+  <div class="frame"><div class="viewport" id="viewport"><div id="stage"></div></div></div>
+  <p class="rotate-hint">Turn your phone sideways for a bigger view. Some things on the screen respond to taps: catalogue tabs, stars and theme names.</p>
+  <div class="sub" id="sub"></div>
+  <div class="card" id="caption"></div>
+  <div class="nav"><button id="prev">← Previous</button><button id="next">Next →</button></div>
+</div>
+<script>
+/* =====================================================================
+   Catalogue, converted automatically from src/shared/Catalog.luau
+   ===================================================================== */
+const rgb = (r, g, b) => [r, g, b];
+const v = (x, y, z) => [x, y, z];
+function legs(w, d, h, inset, color) {
+  const out = [];
+  for (const sx of [-1, 1]) for (const sz of [-1, 1])
+    out.push({ Size: v(0.4, h, 0.4), Offset: v(sx * (w / 2 - inset), h / 2, sz * (d / 2 - inset)), Color: color, Material: "Wood" });
+  return out;
+}
+const join = (...lists) => lists.flat();
+/*@@CATALOG@@*/
+const ITEM = Object.fromEntries(ITEMS.map(i => [i.Id, i]));
+const CATEGORIES = ["Furniture", "Walls", "Floors", "Lighting", "Decor"];
+
+/* From src/shared/Config.luau */
+const CONFIG = {
+  IntermissionTime: 20, ThemeRevealTime: 4, DesignTime: 300, ShowcaseTimePerRoom: 10, ResultsTime: 10,
+  Studio: { IntermissionTime: 10, DesignTime: 90 },
+  RoomSize: 24, WallHeight: 14,
+  PlaceRewards: [{ Coins: 100, XP: 60 }, { Coins: 60, XP: 40 }, { Coins: 40, XP: 30 }],
+  ParticipationReward: { Coins: 15, XP: 15 }, XPPerLevel: 100,
+  Themes: [
+    { Name: "Haunted Bedroom", Hint: "Spooky, dark and a little bit creepy." },
+    { Name: "Dream Café", Hint: "Cosy seats, warm lights, somewhere to sip a latte." },
+    { Name: "Gamer Setup", Hint: "Screens, neon and the comfiest chair you own." },
+  ],
+};
+/* From src/client/UI.luau */
+const C = {
+  Panel: [35, 25, 55], PanelLight: [60, 45, 90], Accent: [255, 110, 180], Gold: [255, 205, 60],
+  Good: [80, 200, 120], Bad: [230, 80, 80], Text: [255, 255, 255], Muted: [190, 180, 210],
+};
+const css = (c, a = 1) => a >= 1 ? `rgb(${c[0]},${c[1]},${c[2]})` : `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+
+/* =====================================================================
+   Tiny 3D renderer: boxes, balls, discs, glows → SVG (painter's algorithm)
+   ===================================================================== */
+const W = 844, H = 390;
+const add = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+const mul = (a, s) => [a[0] * s, a[1] * s, a[2] * s];
+const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+const len = a => Math.hypot(a[0], a[1], a[2]);
+const norm = a => mul(a, 1 / len(a));
+const NEAR = 0.3;
+const LIGHT = norm([0.35, 1, 0.55]);
+
+function camera(eye, target, fov = 70) { // Roblox default FieldOfView is 70° vertical
+  const f = norm(sub(target, eye)), r = norm(cross(f, [0, 1, 0])), u = cross(r, f);
+  return { eye, f, r, u, foc: (H / 2) / Math.tan(fov * Math.PI / 360) };
+}
+const toView = (cam, p) => { const d = sub(p, cam.eye); return [dot(d, cam.r), dot(d, cam.u), dot(d, cam.f)]; };
+const proj = (cam, q) => [W / 2 + q[0] * cam.foc / q[2], H / 2 - q[1] * cam.foc / q[2]];
+function clipPoly(pts) {
+  const out = [];
+  for (let i = 0; i < pts.length; i++) {
+    const a = pts[i], b = pts[(i + 1) % pts.length], ain = a[2] >= NEAR, bin = b[2] >= NEAR;
+    if (ain) out.push(a);
+    if (ain !== bin) { const t = (NEAR - a[2]) / (b[2] - a[2]); out.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, NEAR]); }
+  }
+  return out;
+}
+const shadeC = (c, s) => [Math.min(255, c[0] * s), Math.min(255, c[1] * s), Math.min(255, c[2] * s)];
+const mixW = (c, t) => [c[0] + (255 - c[0]) * t, c[1] + (255 - c[1]) * t, c[2] + (255 - c[2]) * t];
+const yawAxes = yaw => { const c = Math.cos(yaw), s = Math.sin(yaw); return [[c, 0, -s], [0, 1, 0], [s, 0, c]]; };
+const rotY = (p, yaw) => { const c = Math.cos(yaw), s = Math.sin(yaw); return [p[0] * c + p[2] * s, p[1], -p[0] * s + p[2] * c]; };
+const FACE_KEYS = ["x", "y", "z"];
+
+function renderScene(cam, shapes, sky) {
+  const parts = [];
+  const pts2 = list => list.map(q => proj(cam, q).map(n => n.toFixed(1)).join(",")).join(" ");
+  const seg = (a, b, stroke, op, w = 1) => {
+    let qa = toView(cam, a), qb = toView(cam, b);
+    if (qa[2] < NEAR && qb[2] < NEAR) return "";
+    if (qa[2] < NEAR || qb[2] < NEAR) {
+      const t = (NEAR - qa[2]) / (qb[2] - qa[2]), m = [qa[0] + (qb[0] - qa[0]) * t, qa[1] + (qb[1] - qa[1]) * t, NEAR];
+      if (qa[2] < NEAR) qa = m; else qb = m;
+    }
+    const pa = proj(cam, qa), pb = proj(cam, qb);
+    return `<line x1="${pa[0].toFixed(1)}" y1="${pa[1].toFixed(1)}" x2="${pb[0].toFixed(1)}" y2="${pb[1].toFixed(1)}" stroke="${stroke}" stroke-opacity="${op}" stroke-width="${w}"/>`;
+  };
+  shapes.forEach(s => s.depth = len(sub(s.c, cam.eye)));
+  shapes.sort((a, b) => (a.layer ?? 2) - (b.layer ?? 2) || b.depth - a.depth);
+  for (const s of shapes) {
+    if (s.k === "box") parts.push(drawBox(s));
+    else if (s.k === "ball") parts.push(drawBall(s));
+    else if (s.k === "disc") parts.push(drawDisc(s));
+    else if (s.k === "glow") parts.push(drawGlow(s));
+    else if (s.k === "tag") parts.push(drawTag(s));
+  }
+  function drawBox(b) {
+    const A = yawAxes(b.yaw || 0), h = mul(b.s, 0.5);
+    const faces = [];
+    for (let i = 0; i < 3; i++) for (const sg of [1, -1]) {
+      const j = (i + 1) % 3, k = (i + 2) % 3, n = mul(A[i], sg), fc = add(b.c, mul(n, h[i]));
+      if (dot(n, sub(cam.eye, fc)) <= 0) continue;
+      const cj = mul(A[j], h[j]), ck = mul(A[k], h[k]);
+      const ring = [sub(sub(fc, cj), ck), sub(add(fc, cj), ck), add(add(fc, cj), ck), add(sub(fc, cj), ck)];
+      faces.push({ key: (sg > 0 ? "+" : "-") + FACE_KEYS[i], n, fc, ring, i, d: len(sub(fc, cam.eye)) });
+    }
+    faces.sort((a, b2) => b2.d - a.d);
+    let out = "";
+    for (const f of faces) {
+      const q = clipPoly(f.ring.map(p => toView(cam, p)));
+      if (q.length < 3) continue;
+      let col = b.color, op = b.alpha ?? 1, filt = "";
+      if (b.mat === "Neon") { col = mixW(col, 0.25); filt = ' filter="url(#glow)"'; }
+      else col = shadeC(col, 0.62 + 0.42 * Math.max(0, dot(f.n, LIGHT)));
+      if (b.mat === "Glass") op = Math.min(op, 0.55);
+      if (b.mat === "Marble") col = mixW(col, 0.08);
+      out += `<polygon points="${pts2(q)}" fill="${css(col)}" fill-opacity="${op}"${filt}${b.edge ? ` stroke="${b.edge}" stroke-width="1.4"` : ""}/>`;
+      // textures: plank lines on floors, mortar lines on brick walls
+      if (b.mat === "WoodPlanks" && f.key === "+y") {
+        const ax = A[0], az = A[2];
+        for (let t = -h[2] + 1.2; t < h[2]; t += 1.2) {
+          const p0 = add(add(f.fc, mul(az, t)), mul(ax, -h[0])), p1 = add(add(f.fc, mul(az, t)), mul(ax, h[0]));
+          out += seg(p0, p1, "#000", 0.22);
+        }
+      }
+      if (b.mat === "Brick" && f.i !== 1) {
+        const right = norm(cross([0, 1, 0], f.n)), ext = Math.abs(dot(right, A[(f.i + 1) % 3])) * h[(f.i + 1) % 3] + Math.abs(dot(right, A[(f.i + 2) % 3])) * h[(f.i + 2) % 3];
+        for (let y = -h[1] + 1; y < h[1]; y += 1) out += seg(add(add(f.fc, [0, y, 0]), mul(right, -ext)), add(add(f.fc, [0, y, 0]), mul(right, ext)), "#fff", 0.25);
+      }
+      const txt = b.texts && b.texts[f.key];
+      if (txt) out += faceText(b, f, A, h, txt);
+    }
+    return out;
+  }
+  function faceText(b, f, A, h, txt) {
+    const up = [0, 1, 0], right = norm(cross(up, f.n));
+    const j = (f.i + 1) % 3, k = (f.i + 2) % 3;
+    const hw = Math.abs(dot(right, A[j])) * h[j] + Math.abs(dot(right, A[k])) * h[k];
+    const hh = h[1];
+    const tl = add(sub(f.fc, mul(right, hw)), mul(up, hh)), tr = add(add(f.fc, mul(right, hw)), mul(up, hh)), bl = sub(sub(f.fc, mul(right, hw)), mul(up, hh));
+    const [qtl, qtr, qbl] = [tl, tr, bl].map(p => toView(cam, p));
+    if (qtl[2] < NEAR || qtr[2] < NEAR || qbl[2] < NEAR) return "";
+    const [ptl, ptr, pbl] = [qtl, qtr, qbl].map(q => proj(cam, q));
+    const pw = hw * 2 * 40, ph = hh * 2 * 40; // SurfaceGui PixelsPerStud = 40
+    const m = [(ptr[0] - ptl[0]) / pw, (ptr[1] - ptl[1]) / pw, (pbl[0] - ptl[0]) / ph, (pbl[1] - ptl[1]) / ph, ptl[0], ptl[1]].map(n => n.toFixed(5));
+    return `<g transform="matrix(${m.join(" ")})">${txt(pw, ph)}</g>`;
+  }
+  function drawBall(b) {
+    const q = toView(cam, b.c); if (q[2] < NEAR) return "";
+    const p = proj(cam, q), rx = b.s[0] / 2 * cam.foc / q[2], ry = b.s[1] / 2 * cam.foc / q[2];
+    const id = "bg" + Math.random().toString(36).slice(2, 8);
+    const lit = b.mat === "Neon" ? mixW(b.color, .3) : mixW(b.color, .25), dark = b.mat === "Neon" ? b.color : shadeC(b.color, .7);
+    return `<defs><radialGradient id="${id}" cx="40%" cy="32%" r="70%"><stop offset="0" stop-color="${css(lit)}"/><stop offset="1" stop-color="${css(dark)}"/></radialGradient></defs>` +
+      `<ellipse cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" rx="${rx.toFixed(1)}" ry="${ry.toFixed(1)}" fill="url(#${id})" fill-opacity="${b.alpha ?? 1}"/>` +
+      (b.face ? b.face(p, rx, ry) : "");
+  }
+  function drawDisc(b) {
+    const ring = [];
+    for (let i = 0; i < 36; i++) { const a = i / 36 * Math.PI * 2; ring.push(toView(cam, add(b.c, [Math.cos(a) * b.r, 0, Math.sin(a) * b.r]))); }
+    const q = clipPoly(ring); if (q.length < 3) return "";
+    return `<polygon points="${pts2(q)}" fill="${css(shadeC(b.color, 0.98))}" fill-opacity="${b.alpha ?? 1}"/>`;
+  }
+  function drawGlow(b) {
+    const q = toView(cam, b.c); if (q[2] < NEAR) return "";
+    const p = proj(cam, q), r = b.range * 0.55 * cam.foc / q[2];
+    const id = "gl" + Math.random().toString(36).slice(2, 8);
+    return `<defs><radialGradient id="${id}"><stop offset="0" stop-color="${css(b.color)}" stop-opacity="${b.strength ?? .55}"/><stop offset="1" stop-color="${css(b.color)}" stop-opacity="0"/></radialGradient></defs>` +
+      `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${r.toFixed(1)}" fill="url(#${id})" style="mix-blend-mode:screen"/>`;
+  }
+  function drawTag(b) {
+    const q = toView(cam, b.c); if (q[2] < NEAR) return "";
+    const p = proj(cam, q), fs = Math.max(10, Math.min(17, 260 / q[2]));
+    return `<text x="${p[0].toFixed(1)}" y="${p[1].toFixed(1)}" text-anchor="middle" font-family="Montserrat, sans-serif" font-weight="700" font-size="${fs.toFixed(1)}" fill="#fff" stroke="rgba(0,0,0,.55)" stroke-width="3" paint-order="stroke">${b.text}</text>`;
+  }
+  const skyTop = sky?.[0] || "#5aa6e6", skyBot = sky?.[1] || "#cfe6f7";
+  return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
+    <defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${skyTop}"/><stop offset="1" stop-color="${skyBot}"/></linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+    <rect width="${W}" height="${H}" fill="url(#sky)"/>${parts.join("")}</svg>`;
+}
+
+/* ---------- scene building blocks (positions from WorldBuilder.luau) ---------- */
+function box(c, s, color, o = {}) { return Object.assign({ k: "box", c, s, color }, o); }
+function surfText(text, { color = "#fff", font = "Fredoka One", weight = 400, fill = 0.85 } = {}) {
+  return (pw, ph) => {
+    const fs = Math.min(ph * fill, pw / (Math.max(text.length, 1) * 0.58));
+    return `<text x="${pw / 2}" y="${ph / 2}" dy="0.36em" text-anchor="middle" font-family="${font}, 'Noto Color Emoji', sans-serif" font-weight="${weight}" font-size="${fs.toFixed(1)}" fill="${color}">${text}</text>`;
+  };
+}
+const SKIN = [245, 205, 160];
+function avatar(x, y, z, yaw, shirt, pants, name, skin = SKIN) {
+  const P = (dx, dy, dz) => add([x, y, z], rotY([dx, dy, dz], yaw));
+  const face = (pw, ph) => `<circle cx="${pw * .34}" cy="${ph * .42}" r="${pw * .07}" fill="#222"/><circle cx="${pw * .66}" cy="${ph * .42}" r="${pw * .07}" fill="#222"/><path d="M${pw * .3} ${ph * .62} Q${pw * .5} ${ph * .8} ${pw * .7} ${ph * .62}" stroke="#222" stroke-width="${pw * .06}" fill="none" stroke-linecap="round"/>`;
+  const out = [
+    box(P(-0.5, 1, 0), [1, 2, 1], pants, { yaw }), box(P(0.5, 1, 0), [1, 2, 1], pants, { yaw }),
+    box(P(0, 3, 0), [2, 2, 1], shirt, { yaw }),
+    box(P(-1.5, 3, 0), [1, 2, 1], skin, { yaw }), box(P(1.5, 3, 0), [1, 2, 1], skin, { yaw }),
+    box(P(0, 4.6, 0), [1.2, 1.2, 1.2], skin, { yaw, texts: { "-z": face } }),
+  ];
+  if (name) out.push({ k: "tag", c: P(0, 6.1, 0), text: name, layer: 10 });
+  return out;
+}
+
+function itemShapes(id, x, z, rot, origin = [0, 0, 0], ghost = null) {
+  const item = ITEM[id], yaw = rot * Math.PI / 2, base = add(origin, [x, 1, z]); // FloorTop is y = 1
+  const out = [];
+  for (const p of item.Parts) {
+    const c = add(base, rotY(p.Offset, yaw));
+    const alpha = ghost ? 0.5 : 1;
+    if (p.Shape === "Ball") out.push({ k: "ball", c, s: p.Size, color: p.Color, mat: p.Material, alpha });
+    else if (p.Shape === "Cylinder") out.push({ k: "disc", c: add(c, [0, p.Size[0] / 2, 0]), r: p.Size[1] / 2, color: p.Color, layer: 1.5, alpha });
+    else out.push(box(c, p.Size, p.Color, { yaw, mat: p.Material, alpha }));
+    if (p.Light && !ghost) out.push({ k: "glow", c, range: p.Light.Range, color: p.Light.Color, layer: 9 });
+  }
+  if (ghost) { // the Hitbox shows through: blue when valid, red when blocked (BuildController.luau)
+    const fp = item.Footprint;
+    out.push(box(add(base, [0, fp[1] / 2, 0]), fp, ghost === "bad" ? [255, 70, 70] : [80, 200, 255],
+      { yaw, alpha: ghost === "bad" ? 0.5 : 0.18, layer: 3, edge: ghost === "bad" ? "rgba(255,90,90,.9)" : "rgba(120,220,255,.95)" }));
+  }
+  return out;
+}
+
+function lobbyShapes(people) {
+  const s = [];
+  s.push(box([0, -8, 0], [2048, 16, 2048], [100, 100, 100], { layer: 0 }));
+  s.push(box([0, 0.5, 0], [90, 1, 90], [245, 205, 225], { layer: 1, mat: "Marble" }));
+  s.push(box([0, 1.5, 22], [8, 1, 8], [255, 255, 255], { mat: "Neon", layer: 1.2 }));
+  const podium = [[1, 0, 6, [255, 200, 40]], [2, -7, 4, [200, 200, 210]], [3, 7, 2.5, [205, 130, 70]]];
+  for (const [place, x, h, col] of podium) s.push(box([x, 1 + h / 2, -20], [6, h, 6], col, { texts: { "+z": surfText(String(place)) } }));
+  // Leaderboard: CFrame.lookAt toward the spawn, SurfaceGui on its Front (-Z) face
+  const d = norm([0 - -28, 0, 22 - -10]);
+  s.push(box([-28, 7, -10], [18, 12, 1], [60, 40, 90], { yaw: Math.atan2(-d[0], -d[2]), texts: { "-z": leaderboardGui } }));
+  s.push(box([0, 18, -30], [30, 6, 1], [255, 120, 180], { mat: "Neon", texts: { "+z": surfText("DESIGN TO IMPRESS", { fill: .8 }) } }));
+  for (const p of people) s.push(...avatar(...p));
+  return s;
+}
+const BOARD = [["Ava", 7, 6], ["Leo", 3, 4], ["Sam", 2, 3], ["Mia", 1, 2]];
+function leaderboardGui(pw, ph) {
+  let o = `<text x="${pw / 2}" y="${ph * .08}" dy=".36em" text-anchor="middle" font-family="Fredoka One, sans-serif" font-size="${ph * .13}" fill="rgb(255,220,90)">TOP DESIGNERS</text>`;
+  BOARD.forEach(([n, w, l], i) => {
+    o += `<text x="${pw * .05}" y="${ph * (.17 + i * .082 + .04)}" dy=".36em" font-family="Montserrat, 'Noto Color Emoji', sans-serif" font-weight="700" font-size="${ph * .058}" fill="#fff" xml:space="preserve">${i + 1}. ${n}   🏆 ${w}   ⭐ Lv ${l}</text>`;
+  });
+  return o;
+}
+
+function plotShapes(origin, o) {
+  const s = [], h = CONFIG.WallHeight, half = CONFIG.RoomSize / 2;
+  const at = p => add(origin, p);
+  const wall = o.wall ? ITEM[o.wall] : { Color: [200, 200, 205], Material: "SmoothPlastic" };
+  const floor = o.floor ? ITEM[o.floor] : { Color: [160, 160, 165], Material: "SmoothPlastic" };
+  s.push(box(at([0, 0.5, 0]), [24, 1, 24], floor.Color, { mat: floor.Material, layer: 1 }));
+  const wo = { mat: wall.Material, layer: 1.8 };
+  s.push(box(at([0, 1 + h / 2, -half - 0.5]), [26, h, 1], wall.Color, wo));
+  s.push(box(at([-half - 0.5, 1 + h / 2, 0]), [1, h, 24], wall.Color, wo));
+  s.push(box(at([half + 0.5, 1 + h / 2, 0]), [1, h, 24], wall.Color, wo));
+  s.push(box(at([0, 1 + h + 1.5, -half - 0.5]), [14, 2.5, 0.5], [40, 30, 60], { layer: 1.8, texts: { "+z": surfText(o.sign) } }));
+  for (const [id, x, z, r] of o.items || []) s.push(...itemShapes(id, x, z, r, origin));
+  return s;
+}
+function plotArea(centerIndex, rooms) {
+  // Plots sit in a row 40 studs apart (RoomSize + 16) on a grass slab.
+  const s = [box([0, -0.45, 0], [600, 1, 600], [110, 170, 90], { layer: 0 })];
+  rooms.forEach((r, i) => s.push(...plotShapes([(i - centerIndex) * 40, 0, 0], r)));
+  return s;
+}
+
+/* ---------- the rooms used in the walkthrough (all theme: Haunted Bedroom) ---------- */
+const MIA_ROOM = { wall: "wall_purple", floor: "floor_dark", sign: "Mia's Room", items: [
+  ["bed", -6, -7.5, 0], ["candelabra", -1, -11.5, 0], ["bookshelf", 3, -11.25, 0], ["wardrobe", 9, -11, 0],
+  ["pumpkin", -11, -11, 0], ["rug", 4, -4, 0], ["armchair", 4.75, -4.5, 0], ["floor_lamp", 7.75, -5.25, 0],
+  ["pumpkin", 1, -2, 0], ["pumpkin", -4, 2, 0], ["candelabra", -11.5, 2, 1], ["plant", 10, 4, 0],
+] };
+const MY_ROOM_BASE = [["bed", -6, -7.5, 0], ["wardrobe", 9, -11, 0], ["rug", 4, -4, 0], ["pumpkin", 1, -2, 0], ["bookshelf", 3, -11.25, 0]];
+const NEIGHBOURS = { left: { wall: "wall_black", floor: "floor_slate", sign: "Leo's Room", items: [["neon_pink", -10, -11, 0], ["tv_stand", 0, -11.25, 0], ["gaming_pc", 7, -10.75, 0]] },
+  right: { wall: "wall_brick", floor: "floor_oak", sign: "Ava's Room", items: [["bed", 6, -7.5, 0], ["pumpkin", -9, -11, 0], ["candelabra", -1, -11.5, 0]] } };
+
+/* =====================================================================
+   GUI layout helper: UDim2 + AnchorPoint + UISizeConstraint, like Roblox
+   ===================================================================== */
+const GW = 844, GH = 332; // screen minus the 58 px Roblox top bar inset
+function rect(o, pw = GW, ph = GH) {
+  let w = o.size[0] * pw + o.size[1], h = o.size[2] * ph + o.size[3];
+  if (o.min) { w = Math.max(w, o.min[0]); h = Math.max(h, o.min[1]); }
+  if (o.max) { w = Math.min(w, o.max[0]); h = Math.min(h, o.max[1]); }
+  const a = o.anchor || [0, 0];
+  const x = o.pos[0] * pw + o.pos[1] - a[0] * w, y = o.pos[2] * ph + o.pos[3] - a[1] * h;
+  return { x, y, w, h };
+}
+const st = r => `left:${r.x}px;top:${r.y}px;width:${r.w}px;height:${r.h}px`;
+function T(r, text, max, o = {}) {
+  const cls = ["t", o.align || "", o.valign || ""].join(" ");
+  const style = `${st(r)};color:${o.color ? css(o.color) : "#fff"};${o.stroke ? `text-shadow:0 0 3px rgba(0,0,0,${1 - o.stroke}),0 0 1px #000;` : ""}${o.font ? `font-family:${o.font};` : ""}${o.bg || ""}`;
+  return `<div class="${cls}" data-max="${max}" style="${style}"><span class="s">${text}</span></div>`;
+}
+function fitAll(root) { // TextScaled + UITextSizeConstraint: biggest size that fits, capped at MaxTextSize
+  root.querySelectorAll(".t").forEach(el => {
+    const sp = el.firstElementChild;
+    let s = +el.dataset.max; el.style.fontSize = s + "px";
+    while (s > 6 && (sp.offsetHeight > el.clientHeight + 1 || sp.scrollWidth > el.clientWidth + 1)) { s -= 1; el.style.fontSize = s + "px"; }
+  });
+}
+function frame(r, inner = "", o = {}) {
+  const bg = o.bg === null ? "" : `background:${o.bg || css(C.Panel, 0.9)};`;
+  const border = o.stroke ? `box-shadow:inset 0 0 0 2px ${css(o.stroke, .4)};` : "";
+  return `<div class="g" ${o.id ? `id="${o.id}"` : ""} style="${st(r)};${bg}border-radius:${o.radius ?? 12}px;${border}${o.extra || ""}">${inner}</div>`;
+}
+function button(r, text, max, o = {}) {
+  const inner = T({ x: 6, y: 4, w: r.w - 12, h: r.h - 8 }, text, max, { valign: o.valign });
+  return `<div class="btn" ${o.act ? `data-act="${o.act}"` : ""} style="${st(r)};background:${css(o.bg || C.PanelLight)}">${inner}</div>`;
+}
+// UIListLayout, horizontal, centred
+function hlist(parentW, widths, pad) {
+  const total = widths.reduce((a, b) => a + b, 0) + pad * (widths.length - 1);
+  let x = (parentW - total) / 2;
+  return widths.map(w => { const r = x; x += w + pad; return r; });
+}
+
+/* ---------- HUD.luau ---------- */
+const PHASE_TEXT = { Waiting: "Waiting for more players...", Intermission: "Next round starting soon", Theme: "The theme is...",
+  Design: "Design your room!", Showcase: "Showcase - rate each room", Results: "Results!" };
+function hud(phase, theme, secs, stats) {
+  const bar = rect({ anchor: [.5, 0], pos: [.5, 0, 0, 8], size: [.5, 0, 0, 72], min: [300, 0], max: [560, 1e9] });
+  const timer = `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}`;
+  let h = frame(bar,
+    T({ x: 12, y: 6, w: bar.w - 110, h: 30 }, PHASE_TEXT[phase], 26, { align: "left" }) +
+    T({ x: 12, y: 38, w: bar.w - 110, h: 26 }, theme && phase !== "Theme" ? "Theme: " + theme : "", 22, { align: "left", color: C.Gold }) +
+    T({ x: bar.w - 12 - 90, y: (72 - 50) / 2, w: 90, h: 50 }, timer, 40, { align: "right", color: secs <= 10 ? C.Bad : C.Text }),
+    { radius: 14, stroke: C.Accent, bg: css(C.Panel, .9), id: "topbar" });
+  const sr = { x: 10, y: 90, w: 170, h: 62 };
+  const pct = Math.max(0, Math.min(1, stats.into / stats.need));
+  h += frame(sr,
+    T({ x: 10, y: 4, w: 150, h: 24 }, "🪙 " + stats.coins, 20, { align: "left", color: C.Gold }) +
+    T({ x: 10, y: 28, w: 150, h: 16 }, `Level ${stats.level}  (${stats.into} / ${stats.need} XP)`, 15, { align: "left" }) +
+    `<div class="g" style="left:10px;top:47px;width:150px;height:8px;background:rgb(20,15,30);border-radius:4px"><div style="width:${pct * 100}%;height:100%;background:${css(C.Accent)};border-radius:4px"></div></div>`,
+    { bg: css(C.Panel, .8), id: "stats" });
+  return h;
+}
+function toasts(list) { // UI.luau toast holder: 60% wide at y = 90, 36 px rows, 6 px apart
+  const holder = rect({ anchor: [.5, 0], pos: [.5, 0, 0, 90], size: [.6, 0, 0, 200] });
+  return list.map(([text, color], i) =>
+    T({ x: holder.x, y: holder.y + i * 42, w: holder.w, h: 36 }, text, 22, { bg: `background:${css(color || C.Panel, .85)};border-radius:10px;` })).join("");
+}
+function coreGui() { // Roblox's own mobile controls, drawn faintly for context
+  return `<div class="core">
+    <div style="position:absolute;left:12px;top:10px;width:40px;height:40px;border-radius:10px;background:rgba(0,0,0,.45)"><div style="position:absolute;left:11px;top:11px;width:18px;height:18px;border:3px solid #fff;border-radius:3px;transform:rotate(15deg)"></div></div>
+    <div style="position:absolute;left:60px;top:10px;width:40px;height:40px;border-radius:10px;background:rgba(0,0,0,.45)"><div style="position:absolute;left:10px;top:12px;width:20px;height:14px;background:#fff;border-radius:5px"></div></div>
+    <div style="position:absolute;left:46px;bottom:34px;width:110px;height:110px;border-radius:50%;border:3px solid rgba(255,255,255,.35)"><div style="position:absolute;left:33px;top:33px;width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.35)"></div></div>
+    <div style="position:absolute;right:38px;bottom:34px;width:70px;height:70px;border-radius:50%;background:rgba(255,255,255,.25);border:2px solid rgba(255,255,255,.45)"><div style="position:absolute;left:24px;top:22px;width:0;height:0;border-left:11px solid transparent;border-right:11px solid transparent;border-bottom:18px solid rgba(255,255,255,.85)"></div></div>
+  </div>`;
+}
+
+/* ---------- BuildController.luau ---------- */
+function catalogue(tab) {
+  const p = rect({ anchor: [.5, 1], pos: [.5, 0, 1, -70], size: [.6, 0, .38, 0], min: [320, 180], max: [720, 360] });
+  const tabsW = p.w - 16;
+  let inner = "";
+  CATEGORIES.forEach((cat, i) => {
+    const tw = .2 * tabsW - 5;
+    inner += button({ x: 8 + i * (tw + 6), y: 8, w: tw, h: 34 }, cat, 16, { bg: cat === tab ? C.Accent : C.PanelLight, act: "tab:" + cat });
+  });
+  const gw = p.w - 16, gh = p.h - 56;
+  let cells = "";
+  const perRow = Math.max(1, Math.floor((gw + 6) / 102));
+  ITEMS.filter(i => i.Category === tab).forEach((item, i) => {
+    const sw = item.Color || item.Parts[0].Color;
+    const r = { x: (i % perRow) * 102, y: Math.floor(i / perRow) * 76, w: 96, h: 70 };
+    cells += `<div class="btn" style="${st(r)}"><div class="g" style="left:${48 - 15}px;top:2px;width:30px;height:24px;border-radius:6px;background:${css(sw)}"></div>${T({ x: 6, y: 4, w: 84, h: 62 }, item.Name, 16, { valign: "bottom" })}</div>`;
+  });
+  const rows = Math.ceil(ITEMS.filter(i => i.Category === tab).length / perRow), contentH = rows * 76 - 6;
+  const bar = contentH > gh ? `<div class="g" style="right:0;top:0;width:6px;height:${gh * gh / contentH}px;background:rgba(0,0,0,.55);border-radius:3px"></div>` : "";
+  inner += `<div class="g" style="left:8px;top:48px;width:${gw}px;height:${gh}px;overflow:hidden">${cells}${bar}</div>`;
+  return frame(p, inner, { radius: 14, stroke: C.Accent, bg: css(C.Panel, .95), id: "catalogue" });
+}
+function toolbar() {
+  const r = rect({ anchor: [.5, 1], pos: [.5, 0, 1, -10], size: [0, 360, 0, 52] });
+  const xs = hlist(360, [140, 96, 96], 8);
+  return frame(r, button({ x: xs[0], y: 0, w: 140, h: 52 }, "🛋️ Catalogue", 24, { bg: C.Accent }) +
+    button({ x: xs[1], y: 0, w: 96, h: 52 }, "✋ Move", 24) + button({ x: xs[2], y: 0, w: 96, h: 52 }, "🗑️ Delete", 24), { bg: null, radius: 0 });
+}
+function placeBar(itemName) {
+  const r = rect({ anchor: [.5, 1], pos: [.5, 0, 1, -70], size: [0, 360, 0, 56] });
+  const xs = hlist(360, [120, 110, 100], 8);
+  const lr = rect({ anchor: [.5, 1], pos: [.5, 0, 1, -132], size: [0, 360, 0, 28] });
+  return T(lr, "Placing: " + itemName, 22, { stroke: .4 }) +
+    frame(r, button({ x: xs[0], y: 0, w: 120, h: 56 }, "✅ Place", 24, { bg: C.Good }) +
+      button({ x: xs[1], y: 0, w: 110, h: 56 }, "🔄 Rotate", 24) +
+      button({ x: xs[2], y: 0, w: 100, h: 56 }, "❌ Done", 24, { bg: C.Bad }), { bg: null, radius: 0 });
+}
+
+/* ---------- ShowcaseUI.luau ---------- */
+function votePanel(name, idx, total, stars, own) {
+  const r = rect({ anchor: [.5, 1], pos: [.5, 0, 1, -16], size: [0, 420, 0, 130] });
+  let inner = T({ x: 10, y: 8, w: 400, h: 34 }, `${name}'s room  (${idx}/${total})`, 28);
+  if (own) inner += T({ x: 10, y: 56, w: 400, h: 40 }, "This is your room! Everyone else is voting...", 22, { color: C.Muted });
+  else {
+    const xs = hlist(400, [66, 66, 66, 66, 66], 8);
+    xs.forEach((x, i) => inner += button({ x: 10 + x, y: 50, w: 66, h: 66 }, "⭐", 40, { bg: i < stars ? C.Gold : C.PanelLight, act: "star:" + (i + 1) }));
+  }
+  return frame(r, inner, { radius: 16, stroke: C.Gold, bg: css(C.Panel, .95), id: "vote" });
+}
+const MEDALS = ["🥇", "🥈", "🥉"];
+const RANKING = [
+  { Place: 1, Name: "Ava", Score: 4.7, Votes: 3 }, { Place: 2, Name: "Sam", Score: 4.3, Votes: 3, mine: true },
+  { Place: 3, Name: "Leo", Score: 3.7, Votes: 3 }, { Place: 4, Name: "Mia", Score: 3.3, Votes: 3 },
+].map(e => Object.assign(e, CONFIG.PlaceRewards[e.Place - 1] || CONFIG.ParticipationReward));
+function resultsPanel() {
+  const r = rect({ anchor: [1, .5], pos: [1, -16, .55, 0], size: [0, 300, 0, 320] });
+  let inner = T({ x: 10, y: 8, w: 280, h: 36 }, "🏆 Results", 30, { color: C.Gold });
+  RANKING.forEach((e, i) => {
+    const medal = MEDALS[e.Place - 1] || "#" + e.Place;
+    inner += T({ x: 10, y: 50 + i * 48, w: 280, h: 44 }, `${medal} ${e.Name}  ${e.Score.toFixed(1)}⭐ (${e.Votes} votes)\n+${e.Coins} coins  +${e.XP} XP`, 18, { align: "left", color: e.mine ? C.Gold : C.Text });
+  });
+  return { html: frame(r, inner, { radius: 16, stroke: C.Gold, bg: css(C.Panel, .95), id: "results" }), r };
+}
+function splash(theme) {
+  const r = rect({ anchor: [.5, .5], pos: [.5, 0, .45, 0], size: [.8, 0, .3, 0] });
+  return frame(r, T({ x: 0, y: 0, w: r.w, h: r.h * .65 }, theme.Name, 90, { color: C.Gold, stroke: .3 }) +
+    T({ x: 0, y: r.h * .65, w: r.w, h: r.h * .3 }, theme.Hint, 32, { stroke: .5 }), { bg: null, id: "splash" });
+}
+
+/* ---------- Shop (not in the scripts: mock-up from the game plan) ---------- */
+function shop() {
+  const r = rect({ anchor: [.5, .5], pos: [.5, 0, .5, 0], size: [0, 560, 0, 300] });
+  const card = (x, y, w, icon, title, sub) => frame({ x, y, w, h: 74 },
+    T({ x: 6, y: 6, w: 40, h: 40 }, icon, 30) + T({ x: 50, y: 6, w: w - 140, h: 24 }, title, 18, { align: "left" }) +
+    T({ x: 50, y: 30, w: w - 140, h: 38 }, sub, 13, { align: "left", color: C.Muted }) +
+    button({ x: w - 84, y: 20, w: 76, h: 34 }, "R$ ???", 16, { bg: C.Good }), { bg: css(C.PanelLight), radius: 10 });
+  const cw = 266;
+  let inner = T({ x: 14, y: 8, w: 300, h: 34 }, "🛒 Shop", 30, { align: "left", color: C.Gold }) +
+    button({ x: 560 - 46, y: 8, w: 36, h: 36 }, "✕", 22, { bg: C.Bad }) +
+    `<div class="g" style="left:170px;top:16px;padding:3px 10px;border-radius:999px;background:#ffd24a;color:#3a2600;font:700 11px system-ui,sans-serif">MOCK-UP · not in the scripts yet</div>` +
+    T({ x: 14, y: 46, w: 300, h: 18 }, "GAME PASSES", 14, { align: "left", color: C.Accent }) +
+    card(10, 66, cw, "👑", "VIP", "Exclusive furniture, VIP lobby area, 2x coins") +
+    card(284, 66, cw, "⏱️", "Extra Design Time", "More time in every design phase") +
+    card(10, 144, cw, "🔒", "Private Server", "Play with just your friends") +
+    T({ x: 284, y: 144, w: cw, h: 18 }, "DEVELOPER PRODUCTS", 14, { align: "left", color: C.Accent }) +
+    frame({ x: 284, y: 164, w: cw, h: 54 }, T({ x: 6, y: 4, w: 34, h: 46 }, "🪙", 26) + T({ x: 44, y: 6, w: 140, h: 42 }, "Coin Pack\nSpend on new furniture", 15, { align: "left" }) + button({ x: cw - 84, y: 10, w: 76, h: 34 }, "R$ ???", 16, { bg: C.Good }), { bg: css(C.PanelLight), radius: 10 }) +
+    card(10, 222, cw, "⏩", "+30 Seconds", "One-time boost during a round") +
+    card(284, 222, cw, "🎃", "Seasonal Pack", "Limited-time holiday furniture");
+  return frame(r, inner, { radius: 16, stroke: C.Gold, bg: css(C.Panel, .97), id: "shop" });
+}
+
+/* =====================================================================
+   Screens
+   ===================================================================== */
+const LOBBY_PEOPLE = [
+  [0, 2, 22, 0, [70, 120, 220], [40, 40, 60], null],            // you, on the spawn pad
+  [-5, 1, -9, 0.6, [230, 90, 150], [50, 40, 80], "Ava"],
+  [9, 1, 4, -0.9, [80, 180, 120], [40, 50, 40], "Leo"],
+  [-13, 1, 8, 1.8, [250, 190, 70], [90, 60, 40], "Mia"],
+];
+const STATS_BEFORE = { coins: 245, level: 3, into: 40, need: 300 };
+const STATS_AFTER = { coins: 305, level: 3, into: 80, need: 300 };
+const state = { screen: 0, tab: "Furniture", design: "catalogue", theme: 0, stars: 4, own: false };
+
+const SCREENS = [
+  { id: "lobby", label: "1 · Lobby",
+    world: () => renderScene(camera([0, 9.5, 36], [0, 6, -12]), lobbyShapes(LOBBY_PEOPLE)),
+    gui: () => hud("Intermission", "", 14, STATS_BEFORE),
+    caption: () => `<h2>Lobby: intermission</h2>
+      <p>Everyone waits in the pink marble lobby until the next round. The top bar shows the phase and a countdown. Coins, level and the XP bar sit in the top-left corner.</p>
+      <h3>From the code</h3><ul>
+      <li>Intermission lasts <b>${CONFIG.IntermissionTime} s</b> in the live game (${CONFIG.Studio.IntermissionTime} s in Studio). A round needs 2 players live, or 1 in Studio. <code>Config.luau</code></li>
+      <li>The lobby floor is 90 × 90 studs, with a glowing spawn pad, a "DESIGN TO IMPRESS" neon sign and podium steps 6, 4 and 2.5 studs tall. <code>WorldBuilder.luau</code></li>
+      <li>The "TOP DESIGNERS" board ranks players in this server by wins, then level, and refreshes every 5 s. <code>LeaderboardService.luau</code></li>
+      <li>Level 3 needs 300 XP (100 × level), so the bar shows 40 / 300. <code>DataService.luau</code></li></ul>`,
+  },
+  { id: "theme-reveal", label: "2 · Theme reveal",
+    world: () => renderScene(camera([0, 9.5, 36], [0, 6, -12]), lobbyShapes(LOBBY_PEOPLE)),
+    gui: () => hud("Theme", CONFIG.Themes[state.theme].Name, 3, STATS_BEFORE) + splash(CONFIG.Themes[state.theme]),
+    sub: () => CONFIG.Themes.map((t, i) => [t.Name, "theme:" + i, state.theme === i]),
+    caption: () => `<h2>Theme reveal</h2>
+      <p>The theme pops up in big gold letters with a hint underneath, while everyone is still in the lobby. Tap the theme names above the caption to see all three.</p>
+      <h3>From the code</h3><ul>
+      <li>The reveal lasts <b>${CONFIG.ThemeRevealTime} s</b>. The theme is picked at random from ${CONFIG.Themes.length} and never repeats twice in a row. <code>RoundManager.luau</code></li>
+      <li>The splash grows in with a bouncy "Back" ease. The "Theme:" line in the top bar stays hidden until the reveal is over. <code>HUD.luau</code></li>
+      <li>The rest of this walkthrough uses <b>Haunted Bedroom</b>.</li></ul>`,
+  },
+  { id: "design", label: "3 · Design phase",
+    world: () => {
+      const shapes = plotArea(1, [NEIGHBOURS.left, { wall: "wall_purple", floor: "floor_dark", sign: "Sam's Room", items: MY_ROOM_BASE }, NEIGHBOURS.right]);
+      shapes.push(...avatar(0, 1, 9, 0, [70, 120, 220], [40, 40, 60], null));
+      if (state.design === "placing") shapes.push(...itemShapes("candelabra", -1, -11.5, 0, [0, 0, 0], "ok"));
+      if (state.design === "blocked") shapes.push(...itemShapes("armchair", 1.75, -1.5, 0, [0, 0, 0], "bad"));
+      return renderScene(camera([2, 13, 25], [0, 3, -4]), shapes);
+    },
+    gui: () => {
+      let h = hud("Design", "Haunted Bedroom", state.design === "catalogue" ? 252 : 228, STATS_BEFORE);
+      if (state.design === "catalogue") h += toolbar() + catalogue(state.tab);
+      else if (state.design === "placing") h += placeBar("Candelabra");
+      else h += placeBar("Armchair") + toasts([["Something is already there", C.Bad]]);
+      return h;
+    },
+    sub: () => [["Catalogue open", "design:catalogue", state.design === "catalogue"], ["Placing an item", "design:placing", state.design === "placing"], ["Blocked spot", "design:blocked", state.design === "blocked"]],
+    caption: () => {
+      const issue = layoutIssue("catalogue", "stats");
+      return `<h2>Design phase</h2>
+      <p>You're in your own empty room and the catalogue opens automatically. Tap the tabs in the picture to browse all ${ITEMS.length} items. Pick an item and a see-through preview appears, which you can move, rotate and place. Walls and Floors apply to the whole room as soon as you tap them.</p>
+      <h3>From the code</h3><ul>
+      <li>The design phase lasts <b>${CONFIG.DesignTime / 60} minutes</b> live (${CONFIG.Studio.DesignTime} s in Studio). The room is 24 × 24 studs with 14-stud walls, and items snap to a 1-stud grid and turn in 90° steps. <code>Config.luau</code>, <code>ItemBuilder.luau</code></li>
+      <li>The preview box is blue when the spot is free and red when something solid is already there. Rugs can go under things. <code>BuildController.luau</code></li>
+      <li>On a phone you tap the floor to move the item, then press ✅ Place. On PC you click, R rotates and Q finishes. Move picks an item back up and Delete removes it.</li>
+      <li>The catalogue grid fits ${Math.max(1, Math.floor((rect({ anchor: [.5, 1], pos: [.5, 0, 1, -70], size: [.6, 0, .38, 0], min: [320, 180], max: [720, 360] }).w - 16 + 6) / 102))} items per row at this screen size, and the rest scroll.</li></ul>
+      ${issue ? `<div class="issue">Spotted in preview: ${issue}</div>` : ""}`;
+    },
+  },
+  { id: "voting", label: "4 · Voting",
+    world: () => {
+      const rooms = state.own ? [MIA_ROOM, { wall: "wall_purple", floor: "floor_dark", sign: "Sam's Room", items: MY_ROOM_BASE.concat([["candelabra", -1, -11.5, 0], ["plant", 10, 4, 0], ["floor_lamp", -10.25, 2.25, 0]]) }, NEIGHBOURS.right]
+        : [NEIGHBOURS.left, MIA_ROOM, NEIGHBOURS.right];
+      return renderScene(camera([0, CONFIG.WallHeight + 8, 12 + 20], [0, 2, -2]), plotArea(1, rooms));
+    },
+    gui: () => hud("Showcase", "Haunted Bedroom", 7, STATS_BEFORE) + (state.own ? votePanel("Sam", 3, 4, 0, true) : votePanel("Mia", 2, 4, state.stars, false)),
+    sub: () => [["Someone else's room", "own:0", !state.own], ["Your own room", "own:1", state.own]],
+    caption: () => `<h2>Showcase and voting</h2>
+      <p>The camera flies to each room in turn and everyone rates it from 1 to 5 stars. Tap the stars in the picture to try it, and you can change your mind until the room changes. When it's your room you can't vote, and you see a message instead.</p>
+      <h3>From the code</h3><ul>
+      <li>Each room is shown for <b>${CONFIG.ShowcaseTimePerRoom} s</b>, in a random order. The camera is 8 studs above the walls and 20 studs in front of the room. <code>RoundManager.luau</code>, <code>WorldBuilder.luau</code></li>
+      <li>Votes only count for the room on screen, never for your own. A room's score is the average of its stars. <code>RoundManager.luau</code></li>
+      <li>The owner's name goes on the sign above the back wall, so you can see whose room it is.</li></ul>
+      <div class="issue">Spotted in preview: the timer turns red at 10 seconds or less, and each room is only shown for 10 seconds. So the timer is red the whole time during voting, which feels like a constant warning. A threshold of 3 seconds during voting would fix it (<code>HUD.luau</code>).</div>
+`,
+  },
+  { id: "results", label: "5 · Results",
+    world: () => {
+      const people = [[0, 7, -20, Math.PI, [230, 90, 150], [50, 40, 80], "Ava"], [-7, 5, -20, Math.PI, [70, 120, 220], [40, 40, 60], null],
+        [7, 3.5, -20, Math.PI, [80, 180, 120], [40, 50, 40], "Leo"], [-20, 1, -14, 2.4, [250, 190, 70], [90, 60, 40], "Mia"]];
+      return renderScene(camera([0, 14, 6], [0, 6, -20]), lobbyShapes(people));
+    },
+    gui: () => {
+      const rp = resultsPanel();
+      return hud("Results", "Haunted Bedroom", 8, STATS_AFTER) + toasts([["You placed 🥈! +60 coins", C.Good]]) + rp.html;
+    },
+    caption: () => {
+      const rp = resultsPanel().r, over = Math.round(rp.y + rp.h - GH), tb = rect({ anchor: [.5, 0], pos: [.5, 0, 0, 8], size: [.5, 0, 0, 72], min: [300, 0], max: [560, 1e9] });
+      const toast = rect({ anchor: [.5, 0], pos: [.5, 0, 0, 90], size: [.6, 0, 0, 200] });
+      return `<h2>Results and podium</h2>
+      <p>The top 3 are teleported onto the podium and the camera swings round to face them. A results panel lists everyone with their average stars and rewards, and you get a pop-up with your own place.</p>
+      <h3>From the code</h3><ul>
+      <li>Rewards are 🥇 ${CONFIG.PlaceRewards[0].Coins} coins and ${CONFIG.PlaceRewards[0].XP} XP, 🥈 ${CONFIG.PlaceRewards[1].Coins} and ${CONFIG.PlaceRewards[1].XP}, 🥉 ${CONFIG.PlaceRewards[2].Coins} and ${CONFIG.PlaceRewards[2].XP}. Everyone else gets ${CONFIG.ParticipationReward.Coins} coins and ${CONFIG.ParticipationReward.XP} XP. <code>Config.luau</code></li>
+      <li>Ties go to the room with more votes, then to a random pick. A win only counts when more than one player took part. <code>RoundManager.luau</code></li>
+      <li>Your coins went from 245 to 305 and XP from 40 to 80 out of 300, and the top-left panel updates straight away. Results stay up for ${CONFIG.ResultsTime} s, then everyone goes back to the lobby.</li></ul>
+      ${over > 0 ? `<div class="issue">Spotted in preview: the results panel is ${rp.h} px tall and centred at 55% of the screen height, so on this phone its bottom ${over} px is cut off the screen. It also covers the right end of the top bar.</div>` : ""}
+      ${rp.x < toast.x + toast.w ? `<div class="issue">Spotted in preview: the "You placed 🥈!" pop-up sits partly underneath the results panel, because the panel is drawn on top of pop-ups (<code>ShowcaseUI.luau</code> vs <code>UI.luau</code>).</div>` : ""}`;
+    },
+  },
+  { id: "shop", label: "6 · Shop",
+    world: () => renderScene(camera([0, 9.5, 36], [0, 6, -12]), lobbyShapes(LOBBY_PEOPLE)),
+    gui: () => hud("Intermission", "", 14, STATS_BEFORE) + shop(),
+    caption: () => `<h2>Shop (mock-up)</h2>
+      <p><b>The scripts don't have a shop yet.</b> This screen is a mock-up in the same style as the rest of the game, filled in from the Monetisation section of your game plan so you can picture it. Prices are "R$ ???" because the plan doesn't set any.</p>
+      <h3>From the game plan</h3><ul>
+      <li>Game passes: VIP (exclusive furniture, VIP lobby area, 2x coins), extra design time, private server.</li>
+      <li>Developer products: coin packs and one-time boosts such as "+30 seconds" in a round. Seasonal furniture packs for a limited time.</li>
+      <li>To build it you'd need a shop button and panel, <code>MarketplaceService</code> purchase prompts, and a receipt handler on the server that gives coins and passes. The comment in <code>PlotService.Place</code> marks where paid items would be checked.</li>
+      <li>Good to know: on Roblox, private servers are switched on in the experience's settings and Roblox sells them itself. They aren't usually a game pass.</li></ul>`,
+  },
+];
+
+/* Compares two GUI rects already on screen and describes any overlap. */
+function layoutIssue(aId, bId) {
+  const st = document.getElementById("stage"), a = st.querySelector("#" + aId), b = st.querySelector("#" + bId);
+  if (!a || !b) return "";
+  const ra = { x: a.offsetLeft, y: a.offsetTop, w: a.offsetWidth, h: a.offsetHeight }, rb = { x: b.offsetLeft, y: b.offsetTop, w: b.offsetWidth, h: b.offsetHeight };
+  const ox = Math.min(ra.x + ra.w, rb.x + rb.w) - Math.max(ra.x, rb.x), oy = Math.min(ra.y + ra.h, rb.y + rb.h) - Math.max(ra.y, rb.y);
+  const shareOfView = Math.round(ra.w * ra.h / (W * H) * 100);
+  let msg = `on a phone the catalogue is at least 180 px tall (its <code>UISizeConstraint</code> minimum), so it covers about ${shareOfView}% of the screen and hides the front half of your room while it's open.`;
+  if (ox > 0 && oy > 0) msg += ` It also overlaps the coins and level panel by ${Math.round(ox)} px.`;
+  return msg;
+}
+
+/* =====================================================================
+   App shell
+   ===================================================================== */
+const params = new URLSearchParams(location.search);
+const PNG = params.has("png");
+if (params.get("screen")) { const i = SCREENS.findIndex(s => s.id === params.get("screen")); if (i >= 0) state.screen = i; }
+if (params.get("design")) state.design = params.get("design");
+const stage = document.getElementById("stage");
+
+function render() {
+  const s = SCREENS[state.screen];
+  stage.innerHTML = s.world() + `<div class="gui">${s.gui()}</div>` + coreGui();
+  fitAll(stage);
+  if (PNG) return;
+  document.getElementById("steps").innerHTML = SCREENS.map((x, i) => `<button class="${i === state.screen ? "on" : ""}" data-go="${i}">${x.label}</button>`).join("");
+  document.getElementById("sub").innerHTML = (s.sub ? s.sub() : []).map(([l, act, on]) => `<button class="${on ? "on" : ""}" data-act="${act}">${l}</button>`).join("");
+  document.getElementById("caption").innerHTML = s.caption();
+  document.getElementById("prev").disabled = state.screen === 0;
+  document.getElementById("next").disabled = state.screen === SCREENS.length - 1;
+  document.querySelector("#steps .on")?.scrollIntoView({ block: "nearest", inline: "center" });
+}
+function scale() {
+  const vp = document.getElementById("viewport"), k = vp.clientWidth / W;
+  stage.style.transform = `scale(${k})`; vp.style.height = H * k + "px";
+}
+function act(a) {
+  const [k, val] = a.split(":");
+  if (k === "tab") state.tab = val;
+  if (k === "star") state.stars = +val;
+  if (k === "design") state.design = val;
+  if (k === "theme") state.theme = +val;
+  if (k === "own") state.own = val === "1";
+  render();
+}
+document.addEventListener("click", e => {
+  const go = e.target.closest("[data-go]"); if (go) { state.screen = +go.dataset.go; render(); return; }
+  const a = e.target.closest("[data-act]"); if (a) act(a.dataset.act);
+});
+document.getElementById("prev").onclick = () => { if (state.screen > 0) { state.screen--; render(); } };
+document.getElementById("next").onclick = () => { if (state.screen < SCREENS.length - 1) { state.screen++; render(); } };
+
+if (PNG) {
+  document.body.style.background = "#000";
+  document.getElementById("page").replaceWith(stage);
+  stage.style.position = "relative";
+}
+// Wait for the web fonts (Fredoka One = Roblox's FredokaOne) before measuring text; refit if one arrives later.
+function fontsLoaded() {
+  if (!document.fonts) return Promise.resolve();
+  const wanted = ['20px "Fredoka One"', '700 20px Montserrat', '20px "Noto Color Emoji"'];
+  const load = () => Promise.all(wanted.map(f => document.fonts.load(f, "Aa🪙⭐").catch(() => null)));
+  const sheetReady = document.readyState === "complete" ? Promise.resolve() : new Promise(r => addEventListener("load", r, { once: true }));
+  return Promise.race([sheetReady.then(load), new Promise(r => setTimeout(r, 6000))]);
+}
+if (document.fonts) document.fonts.addEventListener("loadingdone", () => fitAll(stage));
+fontsLoaded().then(() => {
+  render(); if (!PNG) scale();
+  window.__ready = true;
+});
+render();
+if (!PNG) { scale(); addEventListener("resize", scale); }
+</script>
+</body>
+</html>
