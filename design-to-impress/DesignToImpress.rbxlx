@@ -1,0 +1,2365 @@
+<roblox xmlns:xmime="http://www.w3.org/2005/05/xmlmime" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.roblox.com/roblox.xsd" version="4"><Item class="Workspace" referent="RBX00000001"><Properties><string name="Name">Workspace</string></Properties><Item class="Part" referent="RBX00000000"><Properties><string name="Name">Baseplate</string><bool name="Anchored">true</bool><bool name="Locked">true</bool><Vector3 name="size"><X>2048</X><Y>16</Y><Z>2048</Z></Vector3><CoordinateFrame name="CFrame"><X>0</X><Y>-8</Y><Z>0</Z><R00>1</R00><R01>0</R01><R02>0</R02><R10>0</R10><R11>1</R11><R12>0</R12><R20>0</R20><R21>0</R21><R22>1</R22></CoordinateFrame><Color3uint8 name="Color3uint8">4284769380</Color3uint8></Properties></Item></Item><Item class="ReplicatedStorage" referent="RBX00000006"><Properties><string name="Name">ReplicatedStorage</string></Properties><Item class="Folder" referent="RBX00000005"><Properties><string name="Name">Shared</string></Properties><Item class="ModuleScript" referent="RBX00000002"><Properties><string name="Name">Catalog</string><ProtectedString name="Source"><![CDATA[--!strict
+-- The catalogue: every item a player can place, plus wall and floor finishes.
+-- Furniture is built from simple Parts so the game works with no imported models.
+-- Each part is { Size, Offset, Color, Material?, Shape?, Rot?, Light? } where Offset
+-- is the part's centre measured from the item's bottom-centre (y = 0 is the floor).
+
+export type PartSpec = {
+	Size: Vector3,
+	Offset: Vector3,
+	Color: Color3,
+	Material: Enum.Material?,
+	Shape: Enum.PartType?,
+	Rot: Vector3?, -- degrees
+	Light: { Brightness: number, Range: number, Color: Color3 }?,
+}
+
+export type Item = {
+	Id: string,
+	Name: string,
+	Category: string,
+	Price: number,
+	Footprint: Vector3?, -- bounding box (x width, y height, z depth)
+	Flat: boolean?, -- flat items (rugs) may overlap other items
+	Parts: { PartSpec }?,
+	Color: Color3?, -- walls / floors
+	Material: Enum.Material?, -- walls / floors
+}
+
+local Catalog = {}
+
+Catalog.Categories = { "Furniture", "Walls", "Floors", "Lighting", "Decor" }
+
+local function rgb(r: number, g: number, b: number): Color3
+	return Color3.fromRGB(r, g, b)
+end
+
+local function v(x: number, y: number, z: number): Vector3
+	return Vector3.new(x, y, z)
+end
+
+local WOOD = rgb(150, 105, 65)
+local DARK_WOOD = rgb(90, 60, 40)
+local WHITE = rgb(240, 240, 235)
+local BLACK = rgb(30, 30, 35)
+local METAL = rgb(120, 120, 130)
+
+local function legs(w: number, d: number, h: number, inset: number, color: Color3): { PartSpec }
+	local out: { PartSpec } = {}
+	for _, sx in { -1, 1 } do
+		for _, sz in { -1, 1 } do
+			table.insert(out, {
+				Size = v(0.4, h, 0.4),
+				Offset = v(sx * (w / 2 - inset), h / 2, sz * (d / 2 - inset)),
+				Color = color,
+				Material = Enum.Material.Wood,
+			})
+		end
+	end
+	return out
+end
+
+local function join(...: { PartSpec }): { PartSpec }
+	local out: { PartSpec } = {}
+	for _, list in { ... } do
+		for _, p in list do
+			table.insert(out, p)
+		end
+	end
+	return out
+end
+
+local items: { Item } = {
+	---------------------------------------------------------------- Furniture (10)
+	{
+		Id = "bed", Name = "Cosy Bed", Category = "Furniture", Price = 0,
+		Footprint = v(6, 4, 9),
+		Parts = {
+			{ Size = v(6, 1.5, 9), Offset = v(0, 0.75, 0), Color = WOOD, Material = Enum.Material.Wood },
+			{ Size = v(5.6, 0.8, 8.4), Offset = v(0, 1.9, 0.2), Color = WHITE, Material = Enum.Material.Fabric },
+			{ Size = v(4, 0.5, 1.4), Offset = v(0, 2.55, -3.2), Color = rgb(255, 255, 255), Material = Enum.Material.Fabric },
+			{ Size = v(5.6, 0.3, 5), Offset = v(0, 2.45, 1.6), Color = rgb(110, 150, 210), Material = Enum.Material.Fabric },
+			{ Size = v(6, 4, 0.5), Offset = v(0, 2, -4.25), Color = DARK_WOOD, Material = Enum.Material.Wood },
+		},
+	},
+	{
+		Id = "sofa", Name = "Sofa", Category = "Furniture", Price = 0,
+		Footprint = v(7, 3.5, 3),
+		Parts = {
+			{ Size = v(7, 1.5, 3), Offset = v(0, 0.75, 0), Color = rgb(200, 90, 80), Material = Enum.Material.Fabric },
+			{ Size = v(7, 2, 0.8), Offset = v(0, 2.5, -1.1), Color = rgb(185, 80, 70), Material = Enum.Material.Fabric },
+			{ Size = v(0.8, 1, 3), Offset = v(-3.1, 2, 0), Color = rgb(185, 80, 70), Material = Enum.Material.Fabric },
+			{ Size = v(0.8, 1, 3), Offset = v(3.1, 2, 0), Color = rgb(185, 80, 70), Material = Enum.Material.Fabric },
+		},
+	},
+	{
+		Id = "armchair", Name = "Armchair", Category = "Furniture", Price = 0,
+		Footprint = v(3.5, 3.5, 3),
+		Parts = {
+			{ Size = v(3.5, 1.5, 3), Offset = v(0, 0.75, 0), Color = rgb(90, 130, 110), Material = Enum.Material.Fabric },
+			{ Size = v(3.5, 2, 0.7), Offset = v(0, 2.5, -1.15), Color = rgb(80, 115, 100), Material = Enum.Material.Fabric },
+			{ Size = v(0.6, 1, 3), Offset = v(-1.45, 2, 0), Color = rgb(80, 115, 100), Material = Enum.Material.Fabric },
+			{ Size = v(0.6, 1, 3), Offset = v(1.45, 2, 0), Color = rgb(80, 115, 100), Material = Enum.Material.Fabric },
+		},
+	},
+	{
+		Id = "dining_table", Name = "Dining Table", Category = "Furniture", Price = 0,
+		Footprint = v(6, 3, 4),
+		Parts = join(
+			{ { Size = v(6, 0.4, 4), Offset = v(0, 2.8, 0), Color = WOOD, Material = Enum.Material.Wood } },
+			legs(6, 4, 2.6, 0.4, DARK_WOOD)
+		),
+	},
+	{
+		Id = "chair", Name = "Wooden Chair", Category = "Furniture", Price = 0,
+		Footprint = v(2, 4, 2),
+		Parts = join({
+			{ Size = v(2, 0.3, 2), Offset = v(0, 1.65, 0), Color = WOOD, Material = Enum.Material.Wood },
+			{ Size = v(2, 2.2, 0.3), Offset = v(0, 2.9, -0.85), Color = WOOD, Material = Enum.Material.Wood },
+		}, legs(2, 2, 1.5, 0.25, DARK_WOOD)),
+	},
+	{
+		Id = "desk", Name = "Desk", Category = "Furniture", Price = 0,
+		Footprint = v(6, 3, 3),
+		Parts = {
+			{ Size = v(6, 0.3, 3), Offset = v(0, 2.85, 0), Color = WHITE, Material = Enum.Material.SmoothPlastic },
+			{ Size = v(0.3, 2.7, 3), Offset = v(-2.85, 1.35, 0), Color = WHITE, Material = Enum.Material.SmoothPlastic },
+			{ Size = v(1.8, 2.7, 2.8), Offset = v(1.95, 1.35, 0), Color = rgb(215, 215, 210), Material = Enum.Material.SmoothPlastic },
+		},
+	},
+	{
+		Id = "bookshelf", Name = "Bookshelf", Category = "Furniture", Price = 0,
+		Footprint = v(4, 7, 1.5),
+		Parts = {
+			{ Size = v(4, 7, 0.2), Offset = v(0, 3.5, -0.65), Color = DARK_WOOD, Material = Enum.Material.Wood },
+			{ Size = v(0.2, 7, 1.5), Offset = v(-1.9, 3.5, 0), Color = DARK_WOOD, Material = Enum.Material.Wood },
+			{ Size = v(0.2, 7, 1.5), Offset = v(1.9, 3.5, 0), Color = DARK_WOOD, Material = Enum.Material.Wood },
+			{ Size = v(3.6, 0.2, 1.5), Offset = v(0, 0.1, 0), Color = DARK_WOOD, Material = Enum.Material.Wood },
+			{ Size = v(3.6, 0.2, 1.5), Offset = v(0, 2.4, 0), Color = DARK_WOOD, Material = Enum.Material.Wood },
+			{ Size = v(3.6, 0.2, 1.5), Offset = v(0, 4.7, 0), Color = DARK_WOOD, Material = Enum.Material.Wood },
+			{ Size = v(3.6, 0.2, 1.5), Offset = v(0, 6.9, 0), Color = DARK_WOOD, Material = Enum.Material.Wood },
+			{ Size = v(2.6, 1.6, 1), Offset = v(-0.4, 1.0, 0), Color = rgb(180, 60, 60) },
+			{ Size = v(3, 1.6, 1), Offset = v(0.1, 3.3, 0), Color = rgb(60, 110, 180) },
+			{ Size = v(2, 1.6, 1), Offset = v(0.6, 5.6, 0), Color = rgb(220, 180, 60) },
+		},
+	},
+	{
+		Id = "wardrobe", Name = "Wardrobe", Category = "Furniture", Price = 0,
+		Footprint = v(4, 8, 2),
+		Parts = {
+			{ Size = v(4, 8, 2), Offset = v(0, 4, 0), Color = WOOD, Material = Enum.Material.Wood },
+			{ Size = v(0.1, 7.4, 0.1), Offset = v(0, 4, 1.02), Color = DARK_WOOD },
+			{ Size = v(0.2, 1, 0.2), Offset = v(-0.35, 4, 1.1), Color = METAL, Material = Enum.Material.Metal },
+			{ Size = v(0.2, 1, 0.2), Offset = v(0.35, 4, 1.1), Color = METAL, Material = Enum.Material.Metal },
+		},
+	},
+	{
+		Id = "coffee_table", Name = "Coffee Table", Category = "Furniture", Price = 0,
+		Footprint = v(4, 1.5, 2.5),
+		Parts = join(
+			{ { Size = v(4, 0.3, 2.5), Offset = v(0, 1.35, 0), Color = rgb(170, 200, 210), Material = Enum.Material.Glass } },
+			legs(4, 2.5, 1.2, 0.3, BLACK)
+		),
+	},
+	{
+		Id = "tv_stand", Name = "TV & Stand", Category = "Furniture", Price = 0,
+		Footprint = v(6, 5.5, 1.5),
+		Parts = {
+			{ Size = v(6, 1.5, 1.5), Offset = v(0, 0.75, 0), Color = BLACK, Material = Enum.Material.SmoothPlastic },
+			{ Size = v(0.6, 0.6, 0.4), Offset = v(0, 1.8, -0.2), Color = BLACK },
+			{ Size = v(5, 3, 0.3), Offset = v(0, 3.6, -0.2), Color = BLACK, Material = Enum.Material.SmoothPlastic },
+			{ Size = v(4.7, 2.7, 0.05), Offset = v(0, 3.6, -0.03), Color = rgb(40, 70, 120), Material = Enum.Material.Neon },
+		},
+	},
+
+	---------------------------------------------------------------- Lighting (4)
+	{
+		Id = "floor_lamp", Name = "Floor Lamp", Category = "Lighting", Price = 0,
+		Footprint = v(1.5, 6, 1.5),
+		Parts = {
+			{ Size = v(1.5, 0.2, 1.5), Offset = v(0, 0.1, 0), Color = METAL, Material = Enum.Material.Metal },
+			{ Size = v(0.2, 5, 0.2), Offset = v(0, 2.6, 0), Color = METAL, Material = Enum.Material.Metal },
+			{
+				Size = v(1.5, 1, 1.5), Offset = v(0, 5.5, 0), Color = rgb(255, 235, 190), Material = Enum.Material.Neon,
+				Light = { Brightness = 2, Range = 14, Color = rgb(255, 220, 170) },
+			},
+		},
+	},
+	{
+		Id = "neon_pink", Name = "Pink Neon Tube", Category = "Lighting", Price = 0,
+		Footprint = v(1, 7, 1),
+		Parts = {
+			{ Size = v(1, 0.3, 1), Offset = v(0, 0.15, 0), Color = BLACK },
+			{
+				Size = v(0.4, 6.5, 0.4), Offset = v(0, 3.55, 0), Color = rgb(255, 60, 200), Material = Enum.Material.Neon,
+				Light = { Brightness = 2, Range = 16, Color = rgb(255, 60, 200) },
+			},
+		},
+	},
+	{
+		Id = "neon_blue", Name = "Blue Neon Tube", Category = "Lighting", Price = 0,
+		Footprint = v(1, 7, 1),
+		Parts = {
+			{ Size = v(1, 0.3, 1), Offset = v(0, 0.15, 0), Color = BLACK },
+			{
+				Size = v(0.4, 6.5, 0.4), Offset = v(0, 3.55, 0), Color = rgb(60, 160, 255), Material = Enum.Material.Neon,
+				Light = { Brightness = 2, Range = 16, Color = rgb(60, 160, 255) },
+			},
+		},
+	},
+	{
+		Id = "candelabra", Name = "Candelabra", Category = "Lighting", Price = 0,
+		Footprint = v(2, 4.5, 1),
+		Parts = {
+			{ Size = v(1, 0.2, 1), Offset = v(0, 0.1, 0), Color = rgb(60, 55, 50), Material = Enum.Material.Metal },
+			{ Size = v(0.2, 3, 0.2), Offset = v(0, 1.6, 0), Color = rgb(60, 55, 50), Material = Enum.Material.Metal },
+			{ Size = v(2, 0.2, 0.2), Offset = v(0, 3.1, 0), Color = rgb(60, 55, 50), Material = Enum.Material.Metal },
+			{ Size = v(0.3, 0.8, 0.3), Offset = v(-0.9, 3.6, 0), Color = WHITE },
+			{ Size = v(0.3, 0.8, 0.3), Offset = v(0, 3.6, 0), Color = WHITE },
+			{ Size = v(0.3, 0.8, 0.3), Offset = v(0.9, 3.6, 0), Color = WHITE },
+			{
+				Size = v(0.2, 0.4, 0.2), Offset = v(0, 4.2, 0), Color = rgb(255, 170, 50), Material = Enum.Material.Neon,
+				Light = { Brightness = 1.5, Range = 12, Color = rgb(255, 150, 60) },
+			},
+			{ Size = v(0.2, 0.4, 0.2), Offset = v(-0.9, 4.2, 0), Color = rgb(255, 170, 50), Material = Enum.Material.Neon },
+			{ Size = v(0.2, 0.4, 0.2), Offset = v(0.9, 4.2, 0), Color = rgb(255, 170, 50), Material = Enum.Material.Neon },
+		},
+	},
+
+	---------------------------------------------------------------- Decor (4)
+	{
+		Id = "plant", Name = "Potted Plant", Category = "Decor", Price = 0,
+		Footprint = v(2, 4, 2),
+		Parts = {
+			{ Size = v(1.6, 1.4, 1.6), Offset = v(0, 0.7, 0), Color = rgb(190, 100, 60), Material = Enum.Material.Concrete },
+			{ Size = v(2, 2.6, 2), Offset = v(0, 2.7, 0), Color = rgb(70, 150, 70), Material = Enum.Material.Grass, Shape = Enum.PartType.Ball },
+		},
+	},
+	{
+		Id = "rug", Name = "Round Rug", Category = "Decor", Price = 0,
+		Footprint = v(6, 0.2, 6), Flat = true,
+		Parts = {
+			{
+				Size = v(0.2, 6, 6), Offset = v(0, 0.1, 0), Color = rgb(200, 170, 220), Material = Enum.Material.Fabric,
+				Shape = Enum.PartType.Cylinder, Rot = v(0, 0, 90),
+			},
+		},
+	},
+	{
+		Id = "pumpkin", Name = "Jack-o'-Lantern", Category = "Decor", Price = 0,
+		Footprint = v(2, 2.3, 2),
+		Parts = {
+			{
+				Size = v(2, 1.8, 2), Offset = v(0, 0.9, 0), Color = rgb(235, 120, 20), Material = Enum.Material.SmoothPlastic,
+				Shape = Enum.PartType.Ball,
+				Light = { Brightness = 1, Range = 8, Color = rgb(255, 140, 40) },
+			},
+			{ Size = v(0.3, 0.5, 0.3), Offset = v(0, 2.05, 0), Color = rgb(70, 110, 40) },
+		},
+	},
+	{
+		Id = "gaming_pc", Name = "Gaming PC Setup", Category = "Decor", Price = 0,
+		Footprint = v(4, 4.8, 2.5),
+		Parts = join({
+			{ Size = v(4, 0.3, 2.5), Offset = v(0, 2.45, 0), Color = BLACK, Material = Enum.Material.SmoothPlastic },
+			{ Size = v(2.6, 1.6, 0.2), Offset = v(-0.3, 3.8, -0.8), Color = BLACK },
+			{ Size = v(2.4, 1.4, 0.05), Offset = v(-0.3, 3.8, -0.68), Color = rgb(80, 255, 140), Material = Enum.Material.Neon },
+			{
+				Size = v(0.8, 1.6, 1.6), Offset = v(1.5, 3.4, -0.3), Color = rgb(170, 60, 255), Material = Enum.Material.Neon,
+				Light = { Brightness = 1.5, Range = 10, Color = rgb(170, 60, 255) },
+			},
+		}, legs(4, 2.5, 2.3, 0.3, BLACK)),
+	},
+
+	---------------------------------------------------------------- Walls (6)
+	{ Id = "wall_white", Name = "Plain White", Category = "Walls", Price = 0, Color = rgb(235, 235, 230), Material = Enum.Material.SmoothPlastic },
+	{ Id = "wall_purple", Name = "Midnight Purple", Category = "Walls", Price = 0, Color = rgb(55, 35, 80), Material = Enum.Material.SmoothPlastic },
+	{ Id = "wall_cream", Name = "Café Cream", Category = "Walls", Price = 0, Color = rgb(240, 220, 185), Material = Enum.Material.Plaster },
+	{ Id = "wall_black", Name = "Gamer Black", Category = "Walls", Price = 0, Color = rgb(25, 25, 30), Material = Enum.Material.SmoothPlastic },
+	{ Id = "wall_mint", Name = "Mint Green", Category = "Walls", Price = 0, Color = rgb(170, 225, 195), Material = Enum.Material.SmoothPlastic },
+	{ Id = "wall_brick", Name = "Red Brick", Category = "Walls", Price = 0, Color = rgb(160, 75, 60), Material = Enum.Material.Brick },
+
+	---------------------------------------------------------------- Floors (6)
+	{ Id = "floor_oak", Name = "Oak Planks", Category = "Floors", Price = 0, Color = rgb(190, 145, 95), Material = Enum.Material.WoodPlanks },
+	{ Id = "floor_dark", Name = "Dark Planks", Category = "Floors", Price = 0, Color = rgb(85, 55, 40), Material = Enum.Material.WoodPlanks },
+	{ Id = "floor_marble", Name = "White Marble", Category = "Floors", Price = 0, Color = rgb(235, 235, 240), Material = Enum.Material.Marble },
+	{ Id = "floor_carpet", Name = "Grey Carpet", Category = "Floors", Price = 0, Color = rgb(130, 130, 135), Material = Enum.Material.Fabric },
+	{ Id = "floor_slate", Name = "Slate", Category = "Floors", Price = 0, Color = rgb(70, 75, 80), Material = Enum.Material.Slate },
+	{ Id = "floor_pink", Name = "Pink Carpet", Category = "Floors", Price = 0, Color = rgb(240, 160, 200), Material = Enum.Material.Fabric },
+}
+
+Catalog.Items = items
+
+local byId: { [string]: Item } = {}
+for _, item in items do
+	assert(byId[item.Id] == nil, "Duplicate catalogue id " .. item.Id)
+	byId[item.Id] = item
+end
+
+function Catalog.Get(id: string): Item?
+	return byId[id]
+end
+
+function Catalog.ByCategory(category: string): { Item }
+	local out = {}
+	for _, item in items do
+		if item.Category == category then
+			table.insert(out, item)
+		end
+	end
+	return out
+end
+
+function Catalog.IsSurface(item: Item): boolean
+	return item.Category == "Walls" or item.Category == "Floors"
+end
+
+return Catalog
+]]></ProtectedString></Properties></Item><Item class="ModuleScript" referent="RBX00000003"><Properties><string name="Name">Config</string><ProtectedString name="Source"><![CDATA[--!strict
+-- Central tuning for Design to Impress. Change numbers here, not in the scripts.
+
+local RunService = game:GetService("RunService")
+local IS_STUDIO = RunService:IsStudio()
+
+local Config = {}
+
+-- Round timings (seconds). In Studio the phases are shortened so you can test quickly.
+Config.IntermissionTime = if IS_STUDIO then 10 else 20
+Config.ThemeRevealTime = 4
+Config.DesignTime = if IS_STUDIO then 90 else 300 -- 5 minutes live
+Config.ShowcaseTimePerRoom = 10
+Config.ResultsTime = 10
+
+-- Rounds start once this many players are in the server (1 in Studio for solo testing).
+Config.MinPlayers = if IS_STUDIO then 1 else 2
+Config.MaxPlots = 12
+
+-- Room geometry (studs).
+Config.RoomSize = 24 -- floor is RoomSize x RoomSize
+Config.WallHeight = 14
+Config.GridSize = 1
+Config.MaxItemsPerRoom = 60
+
+-- Rewards.
+Config.PlaceRewards = {
+	{ Coins = 100, XP = 60 }, -- 1st
+	{ Coins = 60, XP = 40 }, -- 2nd
+	{ Coins = 40, XP = 30 }, -- 3rd
+}
+Config.ParticipationReward = { Coins = 15, XP = 15 }
+
+-- XP needed to go from level N to N+1 is XPPerLevel * N.
+Config.XPPerLevel = 100
+
+Config.Themes = {
+	{ Name = "Haunted Bedroom", Hint = "Spooky, dark and a little bit creepy." },
+	{ Name = "Dream Café", Hint = "Cosy seats, warm lights, somewhere to sip a latte." },
+	{ Name = "Gamer Setup", Hint = "Screens, neon and the comfiest chair you own." },
+}
+
+Config.DataStoreName = "DTI_PlayerData_v1"
+
+return Config
+]]></ProtectedString></Properties></Item><Item class="ModuleScript" referent="RBX00000004"><Properties><string name="Name">ItemBuilder</string><ProtectedString name="Source"><![CDATA[--!strict
+-- Builds catalogue items as Models, and does the footprint / grid maths shared by
+-- the client (ghost preview) and the server (real placement + validation).
+
+local Catalog = require(script.Parent.Catalog)
+local Config = require(script.Parent.Config)
+
+local ItemBuilder = {}
+
+-- Footprint (x, z) after rotating by rot * 90 degrees.
+function ItemBuilder.RotatedFootprint(item: Catalog.Item, rot: number): (number, number)
+	local fp = item.Footprint or Vector3.one
+	if rot % 2 == 1 then
+		return fp.Z, fp.X
+	end
+	return fp.X, fp.Z
+end
+
+-- Snap a centre coordinate so the footprint edges sit on the grid.
+local function snapAxis(value: number, extent: number): number
+	local g = Config.GridSize
+	local half = extent / 2
+	-- the left edge snaps to the grid, then we add back half the extent
+	return math.floor((value - half) / g + 0.5) * g + half
+end
+
+-- Snap + clamp a local (x, z) position on a room floor. Returns the corrected centre.
+function ItemBuilder.SnapToRoom(item: Catalog.Item, rot: number, x: number, z: number): (number, number)
+	local w, d = ItemBuilder.RotatedFootprint(item, rot)
+	local limit = Config.RoomSize / 2
+	x = snapAxis(x, w)
+	z = snapAxis(z, d)
+	x = math.clamp(x, -limit + w / 2, limit - w / 2)
+	z = math.clamp(z, -limit + d / 2, limit - d / 2)
+	return x, z
+end
+
+-- CFrame for an item's bottom-centre given the floor's top-surface CFrame.
+function ItemBuilder.ItemCFrame(floorTop: CFrame, x: number, z: number, rot: number): CFrame
+	return floorTop * CFrame.new(x, 0, z) * CFrame.Angles(0, math.rad(rot * 90), 0)
+end
+
+local function rectOverlap(ax: number, az: number, aw: number, ad: number, bx: number, bz: number, bw: number, bd: number): boolean
+	local eps = 0.01
+	return math.abs(ax - bx) < (aw + bw) / 2 - eps and math.abs(az - bz) < (ad + bd) / 2 - eps
+end
+
+-- True if placing `item` at (x, z, rot) would overlap a solid item already in `placed`.
+-- Flat items (rugs) never block and are never blocked.
+function ItemBuilder.Overlaps(placed: { Instance }, item: Catalog.Item, rot: number, x: number, z: number): boolean
+	if item.Flat then
+		return false
+	end
+	local w, d = ItemBuilder.RotatedFootprint(item, rot)
+	for _, other in placed do
+		local otherItem = Catalog.Get(other:GetAttribute("ItemId") :: string)
+		local ox, oz, orot = other:GetAttribute("X"), other:GetAttribute("Z"), other:GetAttribute("Rot")
+		if otherItem and not otherItem.Flat and typeof(ox) == "number" and typeof(oz) == "number" and typeof(orot) == "number" then
+			local ow, od = ItemBuilder.RotatedFootprint(otherItem, orot)
+			if rectOverlap(x, z, w, d, ox, oz, ow, od) then
+				return true
+			end
+		end
+	end
+	return false
+end
+
+-- Build the model. `ghost` makes it a see-through, non-colliding preview.
+function ItemBuilder.Build(item: Catalog.Item, base: CFrame, ghost: boolean?): Model
+	local model = Instance.new("Model")
+	model.Name = item.Name
+	model:SetAttribute("ItemId", item.Id)
+
+	local fp = item.Footprint or Vector3.one
+	local hitbox = Instance.new("Part")
+	hitbox.Name = "Hitbox"
+	hitbox.Size = fp
+	hitbox.CFrame = base * CFrame.new(0, fp.Y / 2, 0)
+	hitbox.Transparency = if ghost then 0.8 else 1
+	hitbox.Color = Color3.fromRGB(80, 200, 255)
+	hitbox.Anchored = true
+	hitbox.CanCollide = false
+	hitbox.CanTouch = false
+	hitbox.CanQuery = not ghost
+	hitbox.CastShadow = false
+	hitbox.Parent = model
+	model.PrimaryPart = hitbox
+
+	for i, spec in item.Parts or {} do
+		local part = Instance.new("Part")
+		part.Name = "Part" .. i
+		part.Size = spec.Size
+		part.Shape = spec.Shape or Enum.PartType.Block
+		local rot = spec.Rot or Vector3.zero
+		part.CFrame = base
+			* CFrame.new(spec.Offset)
+			* CFrame.Angles(math.rad(rot.X), math.rad(rot.Y), math.rad(rot.Z))
+		part.Color = spec.Color
+		part.Material = spec.Material or Enum.Material.SmoothPlastic
+		part.TopSurface = Enum.SurfaceType.Smooth
+		part.BottomSurface = Enum.SurfaceType.Smooth
+		part.Anchored = true
+		part.CanTouch = false
+		if ghost then
+			part.Transparency = 0.5
+			part.CanCollide = false
+			part.CanQuery = false
+			part.CastShadow = false
+		else
+			part.CanCollide = not item.Flat
+			part.CanQuery = false -- clicks hit the Hitbox instead
+		end
+		if spec.Light and not ghost then
+			local light = Instance.new("PointLight")
+			light.Brightness = spec.Light.Brightness
+			light.Range = spec.Light.Range
+			light.Color = spec.Light.Color
+			light.Shadows = false
+			light.Parent = part
+		end
+		part.Parent = model
+	end
+
+	return model
+end
+
+return ItemBuilder
+]]></ProtectedString></Properties></Item></Item></Item><Item class="ServerScriptService" referent="RBX0000000E"><Properties><string name="Name">ServerScriptService</string></Properties><Item class="Folder" referent="RBX0000000D"><Properties><string name="Name">Server</string></Properties><Item class="ModuleScript" referent="RBX00000007"><Properties><string name="Name">DataService</string><ProtectedString name="Source"><![CDATA[--!strict
+-- Saves coins, XP and wins with DataStores, and mirrors them into leaderstats and
+-- player attributes (Coins, XP, Level, XPIntoLevel, XPForNextLevel) for the HUD.
+-- In Studio, turn on Game Settings > Security > "Enable Studio Access to API Services"
+-- or progress simply won't save (the game still runs).
+
+local DataStoreService = game:GetService("DataStoreService")
+local Players = game:GetService("Players")
+local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
+
+type Profile = { Coins: number, XP: number, Wins: number }
+
+local DataService = {}
+
+local profiles: { [Player]: Profile } = {}
+local canSave: { [Player]: boolean } = {}
+
+local store: DataStore? = nil
+do
+	local ok, result = pcall(function()
+		return DataStoreService:GetDataStore(Config.DataStoreName)
+	end)
+	if ok then
+		store = result
+	else
+		warn("[DataService] DataStores unavailable, progress will not save:", result)
+	end
+end
+
+local function defaultProfile(): Profile
+	return { Coins = 0, XP = 0, Wins = 0 }
+end
+
+-- Returns level, XP into the current level, and XP needed for the next level.
+function DataService.LevelFromXP(xp: number): (number, number, number)
+	local level = 1
+	local remaining = xp
+	while remaining >= Config.XPPerLevel * level do
+		remaining -= Config.XPPerLevel * level
+		level += 1
+	end
+	return level, remaining, Config.XPPerLevel * level
+end
+
+local function retry<T>(fn: () -> T): (boolean, T | string)
+	local ok, result
+	for attempt = 1, 3 do
+		ok, result = pcall(fn)
+		if ok then
+			return true, result
+		end
+		task.wait(attempt)
+	end
+	return false, result
+end
+
+local function refresh(player: Player)
+	local profile = profiles[player]
+	if not profile then
+		return
+	end
+	local level, into, need = DataService.LevelFromXP(profile.XP)
+	local stats = player:FindFirstChild("leaderstats")
+	if stats then
+		(stats:FindFirstChild("Coins") :: IntValue).Value = profile.Coins;
+		(stats:FindFirstChild("Level") :: IntValue).Value = level;
+		(stats:FindFirstChild("Wins") :: IntValue).Value = profile.Wins
+	end
+	player:SetAttribute("Coins", profile.Coins)
+	player:SetAttribute("XP", profile.XP)
+	player:SetAttribute("Level", level)
+	player:SetAttribute("Wins", profile.Wins)
+	player:SetAttribute("XPIntoLevel", into)
+	player:SetAttribute("XPForNextLevel", need)
+end
+
+local function onPlayerAdded(player: Player)
+	local stats = Instance.new("Folder")
+	stats.Name = "leaderstats"
+	for _, name in { "Coins", "Level", "Wins" } do
+		local value = Instance.new("IntValue")
+		value.Name = name
+		value.Parent = stats
+	end
+	stats.Parent = player
+
+	local profile = defaultProfile()
+	local ok = true
+	local activeStore = store
+	if activeStore then
+		local loaded, data = retry(function()
+			return activeStore:GetAsync("player_" .. player.UserId)
+		end)
+		if loaded and typeof(data) == "table" then
+			profile.Coins = tonumber((data :: any).Coins) or 0
+			profile.XP = tonumber((data :: any).XP) or 0
+			profile.Wins = tonumber((data :: any).Wins) or 0
+		elseif not loaded then
+			ok = false -- never overwrite real data with a blank profile
+			warn("[DataService] Could not load data for", player.Name, data)
+		end
+	end
+	if player.Parent == nil then
+		return
+	end
+	profiles[player] = profile
+	canSave[player] = ok and activeStore ~= nil
+	refresh(player)
+end
+
+local function save(player: Player)
+	local profile = profiles[player]
+	local activeStore = store
+	if not profile or not canSave[player] or not activeStore then
+		return
+	end
+	local snapshot = { Coins = profile.Coins, XP = profile.XP, Wins = profile.Wins }
+	local ok, err = retry(function()
+		activeStore:SetAsync("player_" .. player.UserId, snapshot)
+		return true
+	end)
+	if not ok then
+		warn("[DataService] Save failed for", player.Name, err)
+	end
+end
+
+function DataService.AddReward(player: Player, coins: number, xp: number, win: boolean)
+	local profile = profiles[player]
+	if not profile then
+		return
+	end
+	profile.Coins += coins
+	profile.XP += xp
+	if win then
+		profile.Wins += 1
+	end
+	refresh(player)
+end
+
+function DataService.Get(player: Player): Profile?
+	return profiles[player]
+end
+
+function DataService.Start()
+	Players.PlayerAdded:Connect(onPlayerAdded)
+	for _, player in Players:GetPlayers() do
+		task.spawn(onPlayerAdded, player)
+	end
+	Players.PlayerRemoving:Connect(function(player)
+		save(player)
+		profiles[player] = nil
+		canSave[player] = nil
+	end)
+	task.spawn(function()
+		while true do
+			task.wait(120)
+			for _, player in Players:GetPlayers() do
+				task.spawn(save, player)
+			end
+		end
+	end)
+	game:BindToClose(function()
+		local pending = 0
+		for _, player in Players:GetPlayers() do
+			pending += 1
+			task.spawn(function()
+				save(player)
+				pending -= 1
+			end)
+		end
+		local started = os.clock()
+		while pending > 0 and os.clock() - started < 25 do
+			task.wait(0.1)
+		end
+	end)
+end
+
+return DataService
+]]></ProtectedString></Properties></Item><Item class="ModuleScript" referent="RBX00000008"><Properties><string name="Name">LeaderboardService</string><ProtectedString name="Source"><![CDATA[--!strict
+-- Lobby leaderboard: players in this server, ranked by wins, then level.
+
+local Players = game:GetService("Players")
+
+local LeaderboardService = {}
+
+function LeaderboardService.Start(board: Part)
+	local gui = Instance.new("SurfaceGui")
+	gui.Face = Enum.NormalId.Front
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 40
+	gui.Parent = board
+
+	local title = Instance.new("TextLabel")
+	title.Size = UDim2.fromScale(1, 0.16)
+	title.BackgroundTransparency = 1
+	title.Font = Enum.Font.FredokaOne
+	title.TextScaled = true
+	title.TextColor3 = Color3.fromRGB(255, 220, 90)
+	title.Text = "TOP DESIGNERS"
+	title.Parent = gui
+
+	local rows: { TextLabel } = {}
+	for i = 1, 10 do
+		local row = Instance.new("TextLabel")
+		row.Size = UDim2.fromScale(0.9, 0.08)
+		row.Position = UDim2.fromScale(0.05, 0.17 + (i - 1) * 0.082)
+		row.BackgroundTransparency = 1
+		row.Font = Enum.Font.GothamBold
+		row.TextScaled = true
+		row.TextXAlignment = Enum.TextXAlignment.Left
+		row.TextColor3 = Color3.new(1, 1, 1)
+		row.Text = ""
+		row.Parent = gui
+		rows[i] = row
+	end
+
+	task.spawn(function()
+		while true do
+			local list = Players:GetPlayers()
+			table.sort(list, function(a, b)
+				local aw, bw = (a:GetAttribute("Wins") or 0) :: number, (b:GetAttribute("Wins") or 0) :: number
+				if aw ~= bw then
+					return aw > bw
+				end
+				return ((a:GetAttribute("Level") or 1) :: number) > ((b:GetAttribute("Level") or 1) :: number)
+			end)
+			for i, row in rows do
+				local p = list[i]
+				if p then
+					row.Text = string.format("%d. %s   🏆 %d   ⭐ Lv %d", i, p.DisplayName,
+						(p:GetAttribute("Wins") or 0) :: number, (p:GetAttribute("Level") or 1) :: number)
+				else
+					row.Text = ""
+				end
+			end
+			task.wait(5)
+		end
+	end)
+end
+
+return LeaderboardService
+]]></ProtectedString></Properties></Item><Item class="Script" referent="RBX00000009"><Properties><string name="Name">Main</string><ProtectedString name="Source"><![CDATA[--!strict
+-- Entry point: builds the world, creates remotes and starts every service.
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local WorldBuilder = require(script.Parent.WorldBuilder)
+local DataService = require(script.Parent.DataService)
+local PlotService = require(script.Parent.PlotService)
+local RoundManager = require(script.Parent.RoundManager)
+local LeaderboardService = require(script.Parent.LeaderboardService)
+
+local function remote(className: string, name: string, parent: Instance): any
+	local r = Instance.new(className)
+	r.Name = name
+	r.Parent = parent
+	return r
+end
+
+local remoteFolder = Instance.new("Folder")
+remoteFolder.Name = "DTIRemotes"
+local placeItem: RemoteFunction = remote("RemoteFunction", "PlaceItem", remoteFolder)
+local removeItem: RemoteFunction = remote("RemoteFunction", "RemoveItem", remoteFolder)
+local setSurface: RemoteFunction = remote("RemoteFunction", "SetSurface", remoteFolder)
+local vote: RemoteEvent = remote("RemoteEvent", "Vote", remoteFolder)
+local results: RemoteEvent = remote("RemoteEvent", "Results", remoteFolder)
+local notify: RemoteEvent = remote("RemoteEvent", "Notify", remoteFolder)
+
+local state = Instance.new("Folder")
+state.Name = "GameState"
+state:SetAttribute("Phase", "Waiting")
+state:SetAttribute("Theme", "")
+state:SetAttribute("EndsAt", 0)
+state.Parent = remoteFolder
+
+placeItem.OnServerInvoke = function(player, itemId, x, z, rot)
+	return PlotService.Place(player, itemId, x, z, rot)
+end
+removeItem.OnServerInvoke = function(player, target)
+	return PlotService.Remove(player, target)
+end
+setSurface.OnServerInvoke = function(player, itemId)
+	return PlotService.SetSurface(player, itemId)
+end
+
+local world = WorldBuilder.Build()
+PlotService.Init(world.Plots)
+DataService.Start()
+LeaderboardService.Start(world.Board)
+
+remoteFolder.Parent = ReplicatedStorage -- parent last so clients see a complete folder
+RoundManager.Start(world, { State = state, Vote = vote, Results = results, Notify = notify })
+]]></ProtectedString></Properties></Item><Item class="ModuleScript" referent="RBX0000000A"><Properties><string name="Name">PlotService</string><ProtectedString name="Source"><![CDATA[--!strict
+-- Owns the room plots: assigning them each round, and validating every place / remove /
+-- wallpaper / flooring request from clients. The client is never trusted.
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Shared = ReplicatedStorage.Shared
+local Config = require(Shared.Config)
+local Catalog = require(Shared.Catalog)
+local ItemBuilder = require(Shared.ItemBuilder)
+
+local PlotService = {}
+
+local plots: { Model } = {}
+local plotOf: { [Player]: Model } = {}
+local lastAction: { [Player]: number } = {}
+
+PlotService.Editing = false
+
+local DEFAULT_WALL = Color3.fromRGB(200, 200, 205)
+local DEFAULT_FLOOR = Color3.fromRGB(160, 160, 165)
+
+local function resetPlot(plot: Model)
+	local itemsFolder = plot:FindFirstChild("Items") :: Folder
+	itemsFolder:ClearAllChildren()
+	for _, wall in (plot:FindFirstChild("Walls") :: Folder):GetChildren() do
+		local p = wall :: Part
+		p.Color = DEFAULT_WALL
+		p.Material = Enum.Material.SmoothPlastic
+	end
+	local floor = plot:FindFirstChild("Floor") :: Part
+	floor.Color = DEFAULT_FLOOR
+	floor.Material = Enum.Material.SmoothPlastic
+	plot:SetAttribute("OwnerUserId", 0)
+	plot:SetAttribute("OwnerName", "")
+	plot:SetAttribute("WallId", "")
+	plot:SetAttribute("FloorId", "")
+	local label = plot:FindFirstChild("OwnerLabel", true) :: TextLabel?
+	if label then
+		label.Text = "Room " .. tostring(plot:GetAttribute("Index"))
+	end
+end
+
+function PlotService.Init(allPlots: { Model })
+	plots = allPlots
+	for _, plot in plots do
+		resetPlot(plot)
+	end
+end
+
+function PlotService.ClearAll()
+	for player in plotOf do
+		player:SetAttribute("PlotIndex", nil)
+	end
+	table.clear(plotOf)
+	for _, plot in plots do
+		resetPlot(plot)
+	end
+end
+
+-- Gives each player an empty room. Returns the players who got one (in order).
+function PlotService.Assign(players: { Player }): { Player }
+	PlotService.ClearAll()
+	local assigned = {}
+	for i, player in players do
+		local plot = plots[i]
+		if not plot then
+			break -- more players than rooms: the rest spectate this round
+		end
+		plotOf[player] = plot
+		plot:SetAttribute("OwnerUserId", player.UserId)
+		plot:SetAttribute("OwnerName", player.DisplayName)
+		player:SetAttribute("PlotIndex", plot:GetAttribute("Index"))
+		local label = plot:FindFirstChild("OwnerLabel", true) :: TextLabel?
+		if label then
+			label.Text = player.DisplayName .. "'s Room"
+		end
+		table.insert(assigned, player)
+	end
+	return assigned
+end
+
+function PlotService.Release(player: Player)
+	local plot = plotOf[player]
+	if plot then
+		resetPlot(plot)
+		plotOf[player] = nil
+	end
+	lastAction[player] = nil
+end
+
+function PlotService.GetPlot(player: Player): Model?
+	return plotOf[player]
+end
+
+function PlotService.GetPlotByIndex(index: number): Model?
+	return plots[index]
+end
+
+local function canEdit(player: Player): (boolean, Model?)
+	if not PlotService.Editing then
+		return false, nil
+	end
+	local plot = plotOf[player]
+	if not plot then
+		return false, nil
+	end
+	-- light rate limit: 15 actions a second is more than any human needs
+	local now = os.clock()
+	if lastAction[player] and now - lastAction[player] < 1 / 15 then
+		return false, nil
+	end
+	lastAction[player] = now
+	return true, plot
+end
+
+function PlotService.Place(player: Player, itemId: any, x: any, z: any, rot: any): (boolean, string?)
+	if typeof(itemId) ~= "string" or typeof(x) ~= "number" or typeof(z) ~= "number" or typeof(rot) ~= "number" then
+		return false, "Bad request"
+	end
+	if x ~= x or z ~= z or rot ~= rot or math.abs(x) > 1000 or math.abs(z) > 1000 then
+		return false, "Bad request" -- NaN / absurd values
+	end
+	local item = Catalog.Get(itemId)
+	if not item or Catalog.IsSurface(item) then
+		return false, "Unknown item"
+	end
+	local ok, plot = canEdit(player)
+	if not ok or not plot then
+		return false, "You can't build right now"
+	end
+	local items = plot:FindFirstChild("Items") :: Folder
+	if #items:GetChildren() >= Config.MaxItemsPerRoom then
+		return false, "Your room is full!"
+	end
+	-- (price checks go here once paid items exist)
+
+	local r = math.floor(rot) % 4
+	local cx, cz = ItemBuilder.SnapToRoom(item, r, x, z)
+	if ItemBuilder.Overlaps(items:GetChildren(), item, r, cx, cz) then
+		return false, "Something is already there"
+	end
+
+	local floorTop = plot:GetAttribute("FloorTop") :: CFrame
+	local model = ItemBuilder.Build(item, ItemBuilder.ItemCFrame(floorTop, cx, cz, r))
+	model:SetAttribute("X", cx)
+	model:SetAttribute("Z", cz)
+	model:SetAttribute("Rot", r)
+	model.Parent = items
+	return true, nil
+end
+
+function PlotService.Remove(player: Player, target: any): (boolean, string?)
+	local ok, plot = canEdit(player)
+	if not ok or not plot then
+		return false, "You can't build right now"
+	end
+	if typeof(target) ~= "Instance" or not target:IsA("Model") then
+		return false, "Bad request"
+	end
+	if target.Parent ~= plot:FindFirstChild("Items") then
+		return false, "That isn't in your room"
+	end
+	target:Destroy()
+	return true, nil
+end
+
+function PlotService.SetSurface(player: Player, itemId: any): (boolean, string?)
+	if typeof(itemId) ~= "string" then
+		return false, "Bad request"
+	end
+	local item = Catalog.Get(itemId)
+	if not item or not Catalog.IsSurface(item) then
+		return false, "Unknown finish"
+	end
+	local ok, plot = canEdit(player)
+	if not ok or not plot then
+		return false, "You can't build right now"
+	end
+	if item.Category == "Walls" then
+		for _, wall in (plot:FindFirstChild("Walls") :: Folder):GetChildren() do
+			local p = wall :: Part
+			p.Color = item.Color or DEFAULT_WALL
+			p.Material = item.Material or Enum.Material.SmoothPlastic
+		end
+		plot:SetAttribute("WallId", item.Id)
+	else
+		local floor = plot:FindFirstChild("Floor") :: Part
+		floor.Color = item.Color or DEFAULT_FLOOR
+		floor.Material = item.Material or Enum.Material.SmoothPlastic
+		plot:SetAttribute("FloorId", item.Id)
+	end
+	return true, nil
+end
+
+return PlotService
+]]></ProtectedString></Properties></Item><Item class="ModuleScript" referent="RBX0000000B"><Properties><string name="Name">RoundManager</string><ProtectedString name="Source"><![CDATA[--!strict
+-- The core loop: Intermission -> Theme reveal -> Design -> Showcase & voting -> Results.
+-- Round state is published as attributes on ReplicatedStorage.GameState so clients that
+-- join mid-round can read it straight away.
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Config = require(ReplicatedStorage.Shared.Config)
+local PlotService = require(script.Parent.PlotService)
+local DataService = require(script.Parent.DataService)
+
+type World = {
+	LobbySpawn: CFrame,
+	Podium: { CFrame },
+	Plots: { Model },
+}
+
+type Remotes = {
+	State: Folder,
+	Vote: RemoteEvent,
+	Results: RemoteEvent,
+	Notify: RemoteEvent,
+}
+
+local RoundManager = {}
+
+local world: World
+local remotes: Remotes
+local phase = "Waiting"
+local participants: { Player } = {}
+-- votes[ownerUserId][voterUserId] = stars
+local votes: { [number]: { [number]: number } } = {}
+local currentShowcaseOwner = 0
+
+local function setState(attrs: { [string]: any })
+	-- Phase is written last so listeners see the other values already updated.
+	for key, value in attrs do
+		if key ~= "Phase" then
+			remotes.State:SetAttribute(key, value)
+		end
+	end
+	if attrs.Phase then
+		phase = attrs.Phase
+		remotes.State:SetAttribute("Phase", attrs.Phase)
+	end
+end
+
+local function now(): number
+	return workspace:GetServerTimeNow()
+end
+
+local function teleport(player: Player, cf: CFrame)
+	local character = player.Character
+	if character and character.PrimaryPart then
+		character:PivotTo(cf)
+	end
+end
+
+local function lobbySpot(): CFrame
+	return world.LobbySpawn * CFrame.new(math.random(-3, 3), 0, math.random(-3, 3))
+end
+
+local function teleportAllToLobby()
+	for _, player in Players:GetPlayers() do
+		teleport(player, lobbySpot())
+	end
+end
+
+-- Waits `seconds`, returning early if `stopWhen()` becomes true.
+local function countdown(seconds: number, stopWhen: (() -> boolean)?)
+	local endsAt = now() + seconds
+	remotes.State:SetAttribute("EndsAt", endsAt)
+	while now() < endsAt do
+		if stopWhen and stopWhen() then
+			return
+		end
+		task.wait(0.25)
+	end
+end
+
+local function stillHere(player: Player): boolean
+	return player.Parent == Players
+end
+
+local function pickTheme(previous: string?): { Name: string, Hint: string }
+	local themes = Config.Themes
+	local choice = themes[math.random(1, #themes)]
+	if #themes > 1 then
+		while choice.Name == previous do
+			choice = themes[math.random(1, #themes)]
+		end
+	end
+	return choice
+end
+
+local function onVote(voter: Player, ownerUserId: any, stars: any)
+	if phase ~= "Showcase" or typeof(ownerUserId) ~= "number" or typeof(stars) ~= "number" then
+		return
+	end
+	if ownerUserId ~= currentShowcaseOwner or ownerUserId == voter.UserId then
+		return -- only the room on screen, and never your own
+	end
+	stars = math.clamp(math.floor(stars), 1, 5)
+	local roomVotes = votes[ownerUserId]
+	if roomVotes then
+		roomVotes[voter.UserId] = stars -- changing your mind overwrites your vote
+	end
+end
+
+local function runShowcase()
+	-- Show rooms in a random order so nobody is always first.
+	local order = {}
+	for _, p in participants do
+		if stillHere(p) and PlotService.GetPlot(p) then
+			table.insert(order, p)
+		end
+	end
+	for i = #order, 2, -1 do
+		local j = math.random(1, i)
+		order[i], order[j] = order[j], order[i]
+	end
+
+	teleportAllToLobby()
+	local shown = 0
+	for _, owner in order do
+		if not stillHere(owner) then
+			continue
+		end
+		local plot = PlotService.GetPlot(owner)
+		if not plot then
+			continue
+		end
+		shown += 1
+		currentShowcaseOwner = owner.UserId
+		setState({
+			Phase = "Showcase",
+			ShowcasePlot = plot:GetAttribute("Index"),
+			ShowcaseOwner = owner.UserId,
+			ShowcaseOwnerName = owner.DisplayName,
+			ShowcaseTotal = #order,
+		})
+		-- ShowcaseIndex changes last: it's the client's cue to switch rooms.
+		remotes.State:SetAttribute("ShowcaseIndex", shown)
+		countdown(Config.ShowcaseTimePerRoom)
+	end
+	currentShowcaseOwner = 0
+	remotes.State:SetAttribute("ShowcaseIndex", 0) -- so index 1 fires a change next round
+end
+
+local function runResults()
+	type Entry = { Player: Player, Score: number, Votes: number, Tie: number }
+	local entries: { Entry } = {}
+	for _, player in participants do
+		if stillHere(player) then
+			local total, count = 0, 0
+			for _, stars in votes[player.UserId] or {} do
+				total += stars
+				count += 1
+			end
+			table.insert(entries, {
+				Player = player,
+				Score = if count > 0 then total / count else 0,
+				Votes = count,
+				Tie = math.random(),
+			})
+		end
+	end
+	table.sort(entries, function(a, b)
+		if a.Score ~= b.Score then
+			return a.Score > b.Score
+		end
+		if a.Votes ~= b.Votes then
+			return a.Votes > b.Votes
+		end
+		return a.Tie > b.Tie
+	end)
+
+	local ranking = {}
+	for place, entry in entries do
+		local reward = Config.PlaceRewards[place] or Config.ParticipationReward
+		DataService.AddReward(entry.Player, reward.Coins, reward.XP, place == 1 and #entries > 1)
+		table.insert(ranking, {
+			Place = place,
+			UserId = entry.Player.UserId,
+			Name = entry.Player.DisplayName,
+			Score = math.floor(entry.Score * 10 + 0.5) / 10,
+			Votes = entry.Votes,
+			Coins = reward.Coins,
+			XP = reward.XP,
+		})
+		local spot = world.Podium[place]
+		if spot then
+			teleport(entry.Player, spot)
+		end
+	end
+
+	setState({ Phase = "Results" })
+	remotes.Results:FireAllClients(ranking)
+	countdown(Config.ResultsTime)
+end
+
+local function runRound(previousTheme: string?): string?
+	-- Intermission
+	teleportAllToLobby()
+	setState({ Phase = "Intermission", Theme = "" })
+	countdown(Config.IntermissionTime, function()
+		return #Players:GetPlayers() < Config.MinPlayers
+	end)
+	if #Players:GetPlayers() < Config.MinPlayers then
+		return previousTheme
+	end
+
+	-- Theme reveal
+	local theme = pickTheme(previousTheme)
+	setState({ Phase = "Theme", Theme = theme.Name, ThemeHint = theme.Hint })
+	countdown(Config.ThemeRevealTime)
+
+	-- Design
+	participants = PlotService.Assign(Players:GetPlayers())
+	table.clear(votes)
+	for _, player in participants do
+		votes[player.UserId] = {}
+		local plot = PlotService.GetPlot(player)
+		if plot then
+			teleport(player, plot:GetAttribute("SpawnCFrame") :: CFrame)
+		end
+	end
+	for _, player in Players:GetPlayers() do
+		if not table.find(participants, player) then
+			remotes.Notify:FireClient(player, "All rooms are taken - you'll get one next round!")
+		end
+	end
+	PlotService.Editing = true
+	setState({ Phase = "Design" })
+	countdown(Config.DesignTime, function()
+		for _, p in participants do
+			if stillHere(p) then
+				return false
+			end
+		end
+		return true -- everyone who was building has left
+	end)
+	PlotService.Editing = false
+
+	runShowcase()
+	runResults()
+
+	teleportAllToLobby()
+	PlotService.ClearAll()
+	participants = {}
+	return theme.Name
+end
+
+function RoundManager.Start(w: World, r: Remotes)
+	world = w
+	remotes = r
+
+	r.Vote.OnServerEvent:Connect(onVote)
+
+	local function onCharacter(player: Player, character: Model)
+		-- respawning mid-design puts you back in your room, otherwise the lobby
+		task.defer(function()
+			if not character.PrimaryPart then
+				character:WaitForChild("HumanoidRootPart", 5)
+			end
+			local plot = PlotService.GetPlot(player)
+			if phase == "Design" and plot then
+				teleport(player, plot:GetAttribute("SpawnCFrame") :: CFrame)
+			else
+				teleport(player, lobbySpot())
+			end
+		end)
+	end
+	local function onPlayer(player: Player)
+		player.CharacterAdded:Connect(function(c)
+			onCharacter(player, c)
+		end)
+		if player.Character then
+			onCharacter(player, player.Character)
+		end
+	end
+	Players.PlayerAdded:Connect(onPlayer)
+	for _, player in Players:GetPlayers() do
+		onPlayer(player)
+	end
+	Players.PlayerRemoving:Connect(function(player)
+		PlotService.Release(player)
+		votes[player.UserId] = nil
+	end)
+
+	task.spawn(function()
+		local lastTheme: string? = nil
+		while true do
+			if #Players:GetPlayers() < Config.MinPlayers then
+				setState({ Phase = "Waiting", Theme = "", EndsAt = 0 })
+				repeat
+					task.wait(1)
+				until #Players:GetPlayers() >= Config.MinPlayers
+			end
+			local ok, result = pcall(runRound, lastTheme)
+			if ok then
+				lastTheme = result
+			else
+				warn("[RoundManager] Round crashed, starting a new one:", result)
+				PlotService.Editing = false
+				PlotService.ClearAll()
+				task.wait(2)
+			end
+		end
+	end)
+end
+
+return RoundManager
+]]></ProtectedString></Properties></Item><Item class="ModuleScript" referent="RBX0000000C"><Properties><string name="Name">WorldBuilder</string><ProtectedString name="Source"><![CDATA[--!strict
+-- Builds the lobby, podium, leaderboard and room plots from code, so the game runs in an
+-- empty Baseplate with nothing built by hand. Re-running it replaces the previous build.
+
+local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
+
+local WorldBuilder = {}
+
+export type World = {
+	Root: Folder,
+	LobbySpawn: CFrame,
+	Podium: { CFrame }, -- standing spots for 1st, 2nd, 3rd
+	Board: Part,
+	Plots: { Model },
+}
+
+local function part(props: { [string]: any }, parent: Instance): Part
+	local p = Instance.new("Part")
+	p.Anchored = true
+	p.TopSurface = Enum.SurfaceType.Smooth
+	p.BottomSurface = Enum.SurfaceType.Smooth
+	p.Material = Enum.Material.SmoothPlastic
+	for k, val in props do
+		(p :: any)[k] = val
+	end
+	p.Parent = parent
+	return p
+end
+
+local function signText(parent: Part, face: Enum.NormalId, text: string, name: string?): TextLabel
+	local gui = Instance.new("SurfaceGui")
+	gui.Face = face
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 40
+	gui.Parent = parent
+	local label = Instance.new("TextLabel")
+	label.Name = name or "Label"
+	label.Size = UDim2.fromScale(1, 1)
+	label.BackgroundTransparency = 1
+	label.TextScaled = true
+	label.Font = Enum.Font.FredokaOne
+	label.TextColor3 = Color3.new(1, 1, 1)
+	label.Text = text
+	label.Parent = gui
+	return label
+end
+
+local function buildLobby(root: Folder): (CFrame, { CFrame }, Part)
+	local lobby = Instance.new("Folder")
+	lobby.Name = "Lobby"
+	lobby.Parent = root
+
+	part({ Name = "Floor", Size = Vector3.new(90, 1, 90), Position = Vector3.new(0, 0.5, 0),
+		Color = Color3.fromRGB(245, 205, 225), Material = Enum.Material.Marble }, lobby)
+
+	local spawn = Instance.new("SpawnLocation")
+	spawn.Name = "LobbySpawn"
+	spawn.Anchored = true
+	spawn.Size = Vector3.new(8, 1, 8)
+	spawn.Position = Vector3.new(0, 1.5, 22)
+	spawn.Color = Color3.fromRGB(255, 255, 255)
+	spawn.Material = Enum.Material.Neon
+	spawn.Duration = 0
+	spawn.Neutral = true
+	spawn.Parent = lobby
+
+	-- Podium: 2nd (left), 1st (middle), 3rd (right), facing the spawn (+Z).
+	local podium = Instance.new("Folder")
+	podium.Name = "Podium"
+	podium.Parent = lobby
+	local spots: { CFrame } = {}
+	local layout = {
+		{ place = 1, x = 0, h = 6, color = Color3.fromRGB(255, 200, 40) },
+		{ place = 2, x = -7, h = 4, color = Color3.fromRGB(200, 200, 210) },
+		{ place = 3, x = 7, h = 2.5, color = Color3.fromRGB(205, 130, 70) },
+	}
+	for _, step in layout do
+		local block = part({ Name = "Place" .. step.place, Size = Vector3.new(6, step.h, 6),
+			Position = Vector3.new(step.x, 1 + step.h / 2, -20), Color = step.color }, podium)
+		signText(block, Enum.NormalId.Back, tostring(step.place))
+		spots[step.place] = CFrame.new(step.x, 1 + step.h + 3, -20) * CFrame.Angles(0, math.pi, 0)
+	end
+
+	local board = part({ Name = "Leaderboard", Size = Vector3.new(18, 12, 1),
+		Position = Vector3.new(-28, 7, -10), Color = Color3.fromRGB(60, 40, 90) }, lobby)
+	board.CFrame = CFrame.lookAt(board.Position, Vector3.new(0, 7, 22))
+
+	local title = part({ Name = "TitleSign", Size = Vector3.new(30, 6, 1),
+		Position = Vector3.new(0, 18, -30), Color = Color3.fromRGB(255, 120, 180),
+		Material = Enum.Material.Neon }, lobby)
+	signText(title, Enum.NormalId.Back, "DESIGN TO IMPRESS")
+
+	return spawn.CFrame * CFrame.new(0, 3, 0), spots, board
+end
+
+local function buildPlot(index: number, origin: CFrame, parent: Instance): Model
+	local size = Config.RoomSize
+	local h = Config.WallHeight
+	local half = size / 2
+
+	local plot = Instance.new("Model")
+	plot.Name = "Plot" .. index
+	plot:SetAttribute("Index", index)
+	plot:SetAttribute("OwnerUserId", 0)
+
+	local floor = part({ Name = "Floor", Size = Vector3.new(size, 1, size),
+		CFrame = origin * CFrame.new(0, 0.5, 0), Color = Color3.fromRGB(160, 160, 165) }, plot)
+	plot.PrimaryPart = floor
+
+	local walls = Instance.new("Folder")
+	walls.Name = "Walls"
+	walls.Parent = plot
+	local wallColor = Color3.fromRGB(200, 200, 205)
+	part({ Name = "Back", Size = Vector3.new(size + 2, h, 1),
+		CFrame = origin * CFrame.new(0, 1 + h / 2, -half - 0.5), Color = wallColor }, walls)
+	part({ Name = "Left", Size = Vector3.new(1, h, size),
+		CFrame = origin * CFrame.new(-half - 0.5, 1 + h / 2, 0), Color = wallColor }, walls)
+	part({ Name = "Right", Size = Vector3.new(1, h, size),
+		CFrame = origin * CFrame.new(half + 0.5, 1 + h / 2, 0), Color = wallColor }, walls)
+
+	-- Invisible front barrier keeps players inside but never blocks clicks or the camera.
+	part({ Name = "FrontBarrier", Size = Vector3.new(size + 2, h + 10, 1),
+		CFrame = origin * CFrame.new(0, 1 + (h + 10) / 2, half + 0.5), Transparency = 1,
+		CanQuery = false, CastShadow = false }, plot)
+
+	local sign = part({ Name = "Sign", Size = Vector3.new(14, 2.5, 0.5),
+		CFrame = origin * CFrame.new(0, 1 + h + 1.5, -half - 0.5), Color = Color3.fromRGB(40, 30, 60) }, plot)
+	signText(sign, Enum.NormalId.Back, "Room " .. index, "OwnerLabel")
+
+	local items = Instance.new("Folder")
+	items.Name = "Items"
+	items.Parent = plot
+
+	plot:SetAttribute("SpawnCFrame", origin * CFrame.new(0, 4, half - 3))
+	plot:SetAttribute("CameraCFrame",
+		CFrame.lookAt((origin * CFrame.new(0, h + 8, half + 20)).Position, (origin * CFrame.new(0, 2, -2)).Position))
+	plot:SetAttribute("FloorTop", origin * CFrame.new(0, 1, 0))
+
+	plot.Parent = parent
+	return plot
+end
+
+function WorldBuilder.Build(): World
+	local existing = workspace:FindFirstChild("DesignToImpress")
+	if existing then
+		existing:Destroy()
+	end
+	local root = Instance.new("Folder")
+	root.Name = "DesignToImpress"
+	root.Parent = workspace
+
+	local lobbySpawn, podium, board = buildLobby(root)
+
+	-- Turn off the Baseplate template's default spawn so everyone spawns in our lobby.
+	for _, inst in workspace:GetDescendants() do
+		if inst:IsA("SpawnLocation") and not inst:IsDescendantOf(root) then
+			inst.Enabled = false
+			inst.Transparency = 1
+			inst.CanCollide = false
+			local decal = inst:FindFirstChildOfClass("Decal")
+			if decal then
+				decal.Transparency = 1
+			end
+		end
+	end
+
+	local plotsFolder = Instance.new("Folder")
+	plotsFolder.Name = "Plots"
+	plotsFolder.Parent = root
+	local plots = {}
+	local columns = 4
+	local spacing = Config.RoomSize + 16
+	for i = 1, Config.MaxPlots do
+		local col = (i - 1) % columns
+		local row = (i - 1) // columns
+		local origin = CFrame.new((col - (columns - 1) / 2) * spacing, 0, 260 + row * (spacing + 20))
+		table.insert(plots, buildPlot(i, origin, plotsFolder))
+	end
+
+	-- A ground slab under the room area in case the place has no Baseplate.
+	part({ Name = "PlotGround", Size = Vector3.new(columns * spacing + 40, 1, 3 * (spacing + 20) + 60),
+		Position = Vector3.new(0, -0.45, 260 + (spacing + 20)), Color = Color3.fromRGB(110, 170, 90),
+		Material = Enum.Material.Grass }, plotsFolder)
+
+	return { Root = root, LobbySpawn = lobbySpawn, Podium = podium, Board = board, Plots = plots }
+end
+
+return WorldBuilder
+]]></ProtectedString></Properties></Item></Item></Item><Item class="StarterPlayer" referent="RBX00000016"><Properties><string name="Name">StarterPlayer</string></Properties><Item class="StarterPlayerScripts" referent="RBX00000015"><Properties><string name="Name">StarterPlayerScripts</string></Properties><Item class="Folder" referent="RBX00000014"><Properties><string name="Name">Client</string></Properties><Item class="ModuleScript" referent="RBX0000000F"><Properties><string name="Name">BuildController</string><ProtectedString name="Source"><![CDATA[--!strict
+-- The build tool: catalogue panel, ghost preview, grid snapping, rotate, move and delete.
+-- PC: the ghost follows the mouse, click to place, R rotates, Esc cancels.
+-- Mobile: tap the floor to move the ghost, then press Place. Everything has a button.
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Catalog = require(Shared:WaitForChild("Catalog"))
+local ItemBuilder = require(Shared:WaitForChild("ItemBuilder"))
+local UI = require(script.Parent.UI)
+
+local BuildController = {}
+
+type Mode = "Idle" | "Place" | "Delete" | "Move"
+
+function BuildController.Start(state: Folder, remotes: Folder)
+	local player = Players.LocalPlayer
+	local camera = workspace.CurrentCamera
+	local placeRemote = remotes:WaitForChild("PlaceItem") :: RemoteFunction
+	local removeRemote = remotes:WaitForChild("RemoveItem") :: RemoteFunction
+	local surfaceRemote = remotes:WaitForChild("SetSurface") :: RemoteFunction
+
+	local mode: Mode = "Idle"
+	local selected: Catalog.Item? = nil
+	local rotation = 0
+	local ghost: Model? = nil
+	local ghostX, ghostZ = 0, 0
+	local ghostValid = false
+	local pointer: Vector2? = nil -- screen position (GUI-inset space)
+	local busy = false
+	local hoverHighlight = Instance.new("Highlight")
+	hoverHighlight.FillTransparency = 0.6
+	hoverHighlight.DepthMode = Enum.HighlightDepthMode.Occluded
+
+	local function myPlot(): Model?
+		local index = player:GetAttribute("PlotIndex")
+		if typeof(index) ~= "number" then
+			return nil
+		end
+		local root = workspace:FindFirstChild("DesignToImpress")
+		local plots = root and root:FindFirstChild("Plots")
+		return plots and plots:FindFirstChild("Plot" .. index) :: Model?
+	end
+
+	local function canBuild(): boolean
+		return state:GetAttribute("Phase") == "Design" and myPlot() ~= nil
+	end
+
+	---------------------------------------------------------------- UI
+	local root = UI.new("Frame", {
+		Name = "Build", BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), Visible = false, Parent = UI.Screen,
+	})
+
+	-- Panel: category tabs + scrolling item grid, docked bottom-centre.
+	local panel = UI.new("Frame", {
+		Name = "Catalogue",
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -70),
+		Size = UDim2.new(0.6, 0, 0.38, 0),
+		BackgroundColor3 = UI.Colors.Panel,
+		BackgroundTransparency = 0.05,
+		Visible = false,
+		Parent = root,
+	}, {
+		UI.corner(14),
+		UI.stroke(UI.Colors.Accent),
+		UI.new("UISizeConstraint", { MinSize = Vector2.new(320, 180), MaxSize = Vector2.new(720, 360) }),
+	})
+	local tabs = UI.new("Frame", {
+		Name = "Tabs", BackgroundTransparency = 1, Position = UDim2.new(0, 8, 0, 8), Size = UDim2.new(1, -16, 0, 34), Parent = panel,
+	}, {
+		UI.new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }),
+	})
+	local grid = UI.new("ScrollingFrame", {
+		Name = "Items", BackgroundTransparency = 1, Position = UDim2.new(0, 8, 0, 48), Size = UDim2.new(1, -16, 1, -56),
+		CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.Y, ScrollBarThickness = 6,
+		ScrollingDirection = Enum.ScrollingDirection.Y, Parent = panel,
+	}, {
+		UI.new("UIGridLayout", { CellSize = UDim2.new(0, 96, 0, 70), CellPadding = UDim2.new(0, 6, 0, 6), SortOrder = Enum.SortOrder.LayoutOrder }),
+	})
+
+	-- Bottom toolbar: Catalogue / Move / Delete.
+	local toolbar = UI.new("Frame", {
+		Name = "Toolbar", AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -10),
+		Size = UDim2.new(0, 360, 0, 52), BackgroundTransparency = 1, Parent = root,
+	}, {
+		UI.new("UIListLayout", {
+			FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Center,
+			Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder,
+		}),
+	})
+
+	-- Placement bar: Place / Rotate / Cancel, shown while holding an item.
+	local placeBar = UI.new("Frame", {
+		Name = "PlaceBar", AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -70),
+		Size = UDim2.new(0, 360, 0, 56), BackgroundTransparency = 1, Visible = false, Parent = root,
+	}, {
+		UI.new("UIListLayout", {
+			FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Center,
+			Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder,
+		}),
+	})
+	local holdingLabel = UI.label({
+		Name = "Holding", AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -132),
+		Size = UDim2.new(0, 360, 0, 28), Visible = false, MaxTextSize = 22, TextStrokeTransparency = 0.4, Parent = root,
+	})
+
+	local setMode: (Mode) -> ()
+
+	local function clearGhost()
+		if ghost then
+			ghost:Destroy()
+			ghost = nil
+		end
+	end
+
+	local function updateGhost()
+		local plot = myPlot()
+		local item = selected
+		if mode ~= "Place" or not plot or not item then
+			clearGhost()
+			return
+		end
+		if not ghost then
+			ghost = ItemBuilder.Build(item, CFrame.new(), true)
+			ghost.Name = "BuildGhost"
+			ghost.Parent = workspace
+		end
+		local floor = plot:FindFirstChild("Floor") :: Part
+		local floorTop = plot:GetAttribute("FloorTop") :: CFrame
+		if pointer then
+			local ray = camera:ScreenPointToRay(pointer.X, pointer.Y)
+			local params = RaycastParams.new()
+			params.FilterType = Enum.RaycastFilterType.Include
+			params.FilterDescendantsInstances = { floor }
+			local hit = workspace:Raycast(ray.Origin, ray.Direction * 500, params)
+			if hit then
+				local localPos = floorTop:PointToObjectSpace(hit.Position)
+				ghostX, ghostZ = localPos.X, localPos.Z
+			end
+		end
+		ghostX, ghostZ = ItemBuilder.SnapToRoom(item, rotation, ghostX, ghostZ)
+		local items = plot:FindFirstChild("Items") :: Folder
+		ghostValid = not ItemBuilder.Overlaps(items:GetChildren(), item, rotation, ghostX, ghostZ)
+		local g = ghost :: Model
+		g:PivotTo(ItemBuilder.ItemCFrame(floorTop, ghostX, ghostZ, rotation) * CFrame.new(0, (item.Footprint or Vector3.one).Y / 2, 0))
+		local hitbox = g:FindFirstChild("Hitbox") :: Part
+		hitbox.Color = if ghostValid then Color3.fromRGB(80, 200, 255) else Color3.fromRGB(255, 70, 70)
+		hitbox.Transparency = if ghostValid then 0.85 else 0.5
+	end
+
+	local function placeNow()
+		local item = selected
+		if mode ~= "Place" or not item or busy then
+			return
+		end
+		updateGhost()
+		if not ghostValid then
+			UI.toast("Something is already there", UI.Colors.Bad)
+			return
+		end
+		busy = true
+		local ok, msg = placeRemote:InvokeServer(item.Id, ghostX, ghostZ, rotation)
+		busy = false
+		if not ok then
+			UI.toast(msg or "Couldn't place that", UI.Colors.Bad)
+		end
+		-- stay in placement mode so you can place several in a row
+	end
+
+	local function rotate()
+		rotation = (rotation + 1) % 4
+		updateGhost()
+	end
+
+	local function startPlacing(item: Catalog.Item, rot: number?, x: number?, z: number?)
+		clearGhost()
+		selected = item
+		rotation = rot or 0
+		ghostX, ghostZ = x or 0, z or 0
+		pointer = nil
+		setMode("Place")
+		holdingLabel.Text = "Placing: " .. item.Name
+		updateGhost()
+	end
+
+	local function selectItem(item: Catalog.Item)
+		if not canBuild() then
+			return
+		end
+		if Catalog.IsSurface(item) then
+			local ok, msg = surfaceRemote:InvokeServer(item.Id)
+			if not ok then
+				UI.toast(msg or "Couldn't apply that", UI.Colors.Bad)
+			end
+			return
+		end
+		panel.Visible = false
+		startPlacing(item)
+	end
+
+	-- Tabs and item buttons
+	local tabButtons: { [string]: TextButton } = {}
+	local function showCategory(category: string)
+		for name, b in tabButtons do
+			b.BackgroundColor3 = if name == category then UI.Colors.Accent else UI.Colors.PanelLight
+		end
+		for _, child in grid:GetChildren() do
+			if child:IsA("GuiObject") then
+				child:Destroy()
+			end
+		end
+		for i, item in Catalog.ByCategory(category) do
+			local swatch = item.Color
+			if not swatch and item.Parts and item.Parts[1] then
+				swatch = item.Parts[1].Color
+			end
+			local b = UI.button({
+				Name = item.Id, LayoutOrder = i, Text = item.Name, MaxTextSize = 16,
+				TextYAlignment = Enum.TextYAlignment.Bottom, Parent = grid,
+			}, function()
+				selectItem(item)
+			end)
+			UI.new("Frame", {
+				Name = "Swatch", AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 2),
+				Size = UDim2.new(0, 30, 0, 24), BackgroundColor3 = swatch or Color3.new(1, 1, 1), Parent = b,
+			}, { UI.corner(6) })
+		end
+	end
+	for i, category in Catalog.Categories do
+		tabButtons[category] = UI.button({
+			Name = category, LayoutOrder = i, Text = category, Size = UDim2.new(0.2, -5, 1, 0), MaxTextSize = 16, Parent = tabs,
+		}, function()
+			showCategory(category)
+		end)
+	end
+	showCategory(Catalog.Categories[1])
+
+	UI.button({
+		Name = "CatalogueButton", LayoutOrder = 1, Text = "🛋️ Catalogue", Size = UDim2.new(0, 140, 1, 0),
+		BackgroundColor3 = UI.Colors.Accent, Parent = toolbar,
+	}, function()
+		setMode("Idle")
+		panel.Visible = not panel.Visible
+	end)
+	local moveButton = UI.button({
+		Name = "MoveButton", LayoutOrder = 2, Text = "✋ Move", Size = UDim2.new(0, 96, 1, 0), Parent = toolbar,
+	}, function()
+		setMode(if mode == "Move" then "Idle" else "Move")
+	end)
+	local deleteButton = UI.button({
+		Name = "DeleteButton", LayoutOrder = 3, Text = "🗑️ Delete", Size = UDim2.new(0, 96, 1, 0), Parent = toolbar,
+	}, function()
+		setMode(if mode == "Delete" then "Idle" else "Delete")
+	end)
+
+	UI.button({ Name = "Place", LayoutOrder = 1, Text = "✔ Place", Size = UDim2.new(0, 120, 1, 0),
+		BackgroundColor3 = UI.Colors.Good, Parent = placeBar }, placeNow)
+	UI.button({ Name = "Rotate", LayoutOrder = 2, Text = "⟳ Rotate", Size = UDim2.new(0, 110, 1, 0), Parent = placeBar }, rotate)
+	UI.button({ Name = "Cancel", LayoutOrder = 3, Text = "✕ Done", Size = UDim2.new(0, 100, 1, 0),
+		BackgroundColor3 = UI.Colors.Bad, Parent = placeBar }, function()
+		setMode("Idle")
+	end)
+
+	setMode = function(newMode: Mode)
+		mode = newMode
+		if newMode ~= "Place" then
+			selected = nil
+			clearGhost()
+		else
+			panel.Visible = false
+		end
+		if newMode == "Delete" or newMode == "Move" then
+			panel.Visible = false
+			UI.toast(if newMode == "Delete" then "Tap an item to delete it" else "Tap an item to pick it up")
+		end
+		hoverHighlight.Adornee = nil
+		hoverHighlight.Parent = nil
+		placeBar.Visible = newMode == "Place"
+		holdingLabel.Visible = newMode == "Place"
+		toolbar.Visible = newMode ~= "Place"
+		moveButton.BackgroundColor3 = if newMode == "Move" then UI.Colors.Accent else UI.Colors.PanelLight
+		deleteButton.BackgroundColor3 = if newMode == "Delete" then UI.Colors.Bad else UI.Colors.PanelLight
+	end
+
+	---------------------------------------------------------------- World input
+	local function itemAt(screenPos: Vector2): Model?
+		local plot = myPlot()
+		if not plot then
+			return nil
+		end
+		local ray = camera:ScreenPointToRay(screenPos.X, screenPos.Y)
+		local params = RaycastParams.new()
+		params.FilterType = Enum.RaycastFilterType.Include
+		params.FilterDescendantsInstances = { plot:FindFirstChild("Items") :: Instance }
+		local hit = workspace:Raycast(ray.Origin, ray.Direction * 500, params)
+		if hit and hit.Instance.Parent and hit.Instance.Parent:IsA("Model") then
+			return hit.Instance.Parent :: Model
+		end
+		return nil
+	end
+
+	local function actOnItem(model: Model)
+		if busy then
+			return
+		end
+		if mode == "Delete" then
+			busy = true
+			local ok, msg = removeRemote:InvokeServer(model)
+			busy = false
+			if not ok then
+				UI.toast(msg or "Couldn't delete that", UI.Colors.Bad)
+			end
+		elseif mode == "Move" then
+			local item = Catalog.Get(model:GetAttribute("ItemId") :: string)
+			if not item then
+				return
+			end
+			local rot = (model:GetAttribute("Rot") or 0) :: number
+			local x = (model:GetAttribute("X") or 0) :: number
+			local z = (model:GetAttribute("Z") or 0) :: number
+			busy = true
+			local ok, msg = removeRemote:InvokeServer(model)
+			busy = false
+			if ok then
+				startPlacing(item, rot, x, z)
+			else
+				UI.toast(msg or "Couldn't move that", UI.Colors.Bad)
+			end
+		end
+	end
+
+	-- Screen position in GUI-inset space (what ScreenPointToRay expects).
+	local function mouseScreenPos(): Vector2
+		local m = UserInputService:GetMouseLocation()
+		local inset = game:GetService("GuiService"):GetGuiInset()
+		return m - inset
+	end
+
+	UserInputService.InputBegan:Connect(function(input, processed)
+		if processed or not root.Visible then
+			return
+		end
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			local pos = mouseScreenPos()
+			if mode == "Place" then
+				pointer = pos
+				placeNow()
+			elseif mode == "Delete" or mode == "Move" then
+				local model = itemAt(pos)
+				if model then
+					actOnItem(model)
+				end
+			end
+		elseif input.KeyCode == Enum.KeyCode.R and mode == "Place" then
+			rotate()
+		elseif input.KeyCode == Enum.KeyCode.Escape or input.KeyCode == Enum.KeyCode.Q then
+			setMode("Idle")
+		end
+	end)
+
+	-- Touch: a tap (not a camera drag) moves the ghost, or picks an item in Move/Delete mode.
+	UserInputService.TouchTapInWorld:Connect(function(position, processedByUI)
+		if processedByUI or not root.Visible then
+			return
+		end
+		if mode == "Place" then
+			pointer = position
+			updateGhost()
+		elseif mode == "Delete" or mode == "Move" then
+			local model = itemAt(position)
+			if model then
+				actOnItem(model)
+			end
+		end
+	end)
+
+	RunService.RenderStepped:Connect(function()
+		if not root.Visible then
+			return
+		end
+		local usingMouse = UserInputService.MouseEnabled and not UserInputService.TouchEnabled
+		if mode == "Place" then
+			if usingMouse then
+				pointer = mouseScreenPos()
+			end
+			updateGhost()
+		elseif (mode == "Delete" or mode == "Move") and usingMouse then
+			local model = itemAt(mouseScreenPos())
+			if model then
+				hoverHighlight.FillColor = if mode == "Delete" then UI.Colors.Bad else UI.Colors.Accent
+				hoverHighlight.Adornee = model
+				hoverHighlight.Parent = model
+			else
+				hoverHighlight.Adornee = nil
+				hoverHighlight.Parent = nil
+			end
+		end
+	end)
+
+	---------------------------------------------------------------- Show / hide with the round
+	local function refresh()
+		local active = canBuild()
+		if root.Visible ~= active then
+			root.Visible = active
+			setMode("Idle")
+			panel.Visible = active -- open the catalogue at the start of the design phase
+		end
+	end
+	state:GetAttributeChangedSignal("Phase"):Connect(refresh)
+	player:GetAttributeChangedSignal("PlotIndex"):Connect(refresh)
+	setMode("Idle")
+	refresh()
+end
+
+return BuildController
+]]></ProtectedString></Properties></Item><Item class="LocalScript" referent="RBX00000010"><Properties><string name="Name">Client</string><ProtectedString name="Source"><![CDATA[--!strict
+-- Client entry point. Waits for the server's remotes, then starts each UI piece.
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local remotes = ReplicatedStorage:WaitForChild("DTIRemotes") :: Folder
+local state = remotes:WaitForChild("GameState") :: Folder
+
+local HUD = require(script.Parent:WaitForChild("HUD"))
+local BuildController = require(script.Parent:WaitForChild("BuildController"))
+local ShowcaseUI = require(script.Parent:WaitForChild("ShowcaseUI"))
+
+HUD.Start(state)
+BuildController.Start(state, remotes)
+ShowcaseUI.Start(state, remotes)
+]]></ProtectedString></Properties></Item><Item class="ModuleScript" referent="RBX00000011"><Properties><string name="Name">HUD</string><ProtectedString name="Source"><![CDATA[--!strict
+-- Top bar (phase, theme, timer), player stats (coins, level, XP bar) and the theme reveal splash.
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+
+local UI = require(script.Parent.UI)
+
+local HUD = {}
+
+local PHASE_TEXT = {
+	Waiting = "Waiting for more players...",
+	Intermission = "Next round starting soon",
+	Theme = "The theme is...",
+	Design = "Design your room!",
+	Showcase = "Showcase - rate each room",
+	Results = "Results!",
+}
+
+function HUD.Start(state: Folder)
+	local player = Players.LocalPlayer
+	local screen = UI.Screen
+
+	local bar = UI.new("Frame", {
+		Name = "TopBar",
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 8),
+		Size = UDim2.new(0.5, 0, 0, 72),
+		BackgroundColor3 = UI.Colors.Panel,
+		BackgroundTransparency = 0.1,
+		Parent = screen,
+	}, {
+		UI.corner(14),
+		UI.stroke(UI.Colors.Accent),
+		UI.new("UISizeConstraint", { MinSize = Vector2.new(300, 0), MaxSize = Vector2.new(560, math.huge) }),
+	})
+	local phaseLabel = UI.label({
+		Name = "Phase", Position = UDim2.new(0, 12, 0, 6), Size = UDim2.new(1, -110, 0, 30),
+		TextXAlignment = Enum.TextXAlignment.Left, MaxTextSize = 26, Parent = bar,
+	})
+	local themeLabel = UI.label({
+		Name = "Theme", Position = UDim2.new(0, 12, 0, 38), Size = UDim2.new(1, -110, 0, 26),
+		TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = UI.Colors.Gold, MaxTextSize = 22, Parent = bar,
+	})
+	local timerLabel = UI.label({
+		Name = "Timer", AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -12, 0.5, 0),
+		Size = UDim2.new(0, 90, 0, 50), TextXAlignment = Enum.TextXAlignment.Right, MaxTextSize = 40, Parent = bar,
+	})
+
+	-- Stats, top-left (clear of the mobile thumbstick and jump button).
+	local stats = UI.new("Frame", {
+		Name = "Stats",
+		Position = UDim2.new(0, 10, 0, 90),
+		Size = UDim2.new(0, 170, 0, 62),
+		BackgroundColor3 = UI.Colors.Panel,
+		BackgroundTransparency = 0.2,
+		Parent = screen,
+	}, { UI.corner(12) })
+	local coinsLabel = UI.label({
+		Position = UDim2.new(0, 10, 0, 4), Size = UDim2.new(1, -20, 0, 24),
+		TextXAlignment = Enum.TextXAlignment.Left, MaxTextSize = 20, TextColor3 = UI.Colors.Gold, Parent = stats,
+	})
+	local levelLabel = UI.label({
+		Position = UDim2.new(0, 10, 0, 28), Size = UDim2.new(1, -20, 0, 16),
+		TextXAlignment = Enum.TextXAlignment.Left, MaxTextSize = 15, Parent = stats,
+	})
+	local xpBack = UI.new("Frame", {
+		Position = UDim2.new(0, 10, 0, 47), Size = UDim2.new(1, -20, 0, 8),
+		BackgroundColor3 = Color3.fromRGB(20, 15, 30), Parent = stats,
+	}, { UI.corner(4) })
+	local xpFill = UI.new("Frame", {
+		Size = UDim2.fromScale(0, 1), BackgroundColor3 = UI.Colors.Accent, Parent = xpBack,
+	}, { UI.corner(4) })
+
+	local function refreshStats()
+		local coins = (player:GetAttribute("Coins") or 0) :: number
+		local level = (player:GetAttribute("Level") or 1) :: number
+		local into = (player:GetAttribute("XPIntoLevel") or 0) :: number
+		local need = (player:GetAttribute("XPForNextLevel") or 100) :: number
+		coinsLabel.Text = "🪙 " .. coins
+		levelLabel.Text = string.format("Level %d  (%d / %d XP)", level, into, need)
+		TweenService:Create(xpFill, TweenInfo.new(0.4), { Size = UDim2.fromScale(math.clamp(into / need, 0, 1), 1) }):Play()
+	end
+	for _, attr in { "Coins", "Level", "XPIntoLevel", "XPForNextLevel" } do
+		player:GetAttributeChangedSignal(attr):Connect(refreshStats)
+	end
+	refreshStats()
+
+	-- Theme reveal splash.
+	local splash = UI.new("Frame", {
+		Name = "ThemeSplash",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.45),
+		Size = UDim2.fromScale(0.8, 0.3),
+		BackgroundTransparency = 1,
+		Visible = false,
+		Parent = screen,
+	})
+	local splashTheme = UI.label({
+		Size = UDim2.fromScale(1, 0.65), TextColor3 = UI.Colors.Gold, MaxTextSize = 90, Parent = splash,
+		TextStrokeTransparency = 0.3,
+	})
+	local splashHint = UI.label({
+		Position = UDim2.fromScale(0, 0.65), Size = UDim2.fromScale(1, 0.3), MaxTextSize = 32, Parent = splash,
+		TextStrokeTransparency = 0.5,
+	})
+
+	local function refreshPhase()
+		local phase = state:GetAttribute("Phase") :: string
+		local theme = (state:GetAttribute("Theme") or "") :: string
+		local text = PHASE_TEXT[phase] or phase
+		if phase == "Design" and player:GetAttribute("PlotIndex") == nil then
+			text = "Spectating - you'll build next round"
+		end
+		phaseLabel.Text = text
+		themeLabel.Text = if theme ~= "" and phase ~= "Theme" then "Theme: " .. theme else ""
+
+		if phase == "Theme" then
+			splashTheme.Text = theme
+			splashHint.Text = (state:GetAttribute("ThemeHint") or "") :: string
+			splash.Visible = true
+			splash.Size = UDim2.fromScale(0.2, 0.08)
+			TweenService:Create(splash, TweenInfo.new(0.6, Enum.EasingStyle.Back), { Size = UDim2.fromScale(0.8, 0.3) }):Play()
+		else
+			splash.Visible = false
+		end
+	end
+	state:GetAttributeChangedSignal("Phase"):Connect(refreshPhase)
+	state:GetAttributeChangedSignal("Theme"):Connect(refreshPhase)
+	player:GetAttributeChangedSignal("PlotIndex"):Connect(refreshPhase)
+	refreshPhase()
+
+	RunService.Heartbeat:Connect(function()
+		local endsAt = (state:GetAttribute("EndsAt") or 0) :: number
+		local left = math.max(0, math.ceil(endsAt - workspace:GetServerTimeNow()))
+		if endsAt <= 0 or state:GetAttribute("Phase") == "Waiting" then
+			timerLabel.Text = ""
+		else
+			timerLabel.Text = string.format("%d:%02d", left // 60, left % 60)
+			timerLabel.TextColor3 = if left <= 10 then UI.Colors.Bad else UI.Colors.Text
+		end
+	end)
+end
+
+return HUD
+]]></ProtectedString></Properties></Item><Item class="ModuleScript" referent="RBX00000012"><Properties><string name="Name">ShowcaseUI</string><ProtectedString name="Source"><![CDATA[--!strict
+-- Showcase (camera flies to each room, star rating) and Results (podium + ranking list).
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+
+local UI = require(script.Parent.UI)
+
+local ShowcaseUI = {}
+
+local PODIUM_VIEW = CFrame.lookAt(Vector3.new(0, 14, 6), Vector3.new(0, 6, -20))
+local MEDALS = { "🥇", "🥈", "🥉" }
+
+function ShowcaseUI.Start(state: Folder, remotes: Folder)
+	local player = Players.LocalPlayer
+	local camera = workspace.CurrentCamera
+	local voteRemote = remotes:WaitForChild("Vote") :: RemoteEvent
+	local resultsRemote = remotes:WaitForChild("Results") :: RemoteEvent
+
+	local cameraLocked = false
+	local function lockCamera(target: CFrame)
+		camera.CameraType = Enum.CameraType.Scriptable
+		if cameraLocked then
+			TweenService:Create(camera, TweenInfo.new(0.8, Enum.EasingStyle.Quad), { CFrame = target }):Play()
+		else
+			camera.CFrame = target
+		end
+		cameraLocked = true
+	end
+	local function unlockCamera()
+		if not cameraLocked then
+			return
+		end
+		cameraLocked = false
+		camera.CameraType = Enum.CameraType.Custom
+		local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			camera.CameraSubject = humanoid
+		end
+	end
+
+	---------------------------------------------------------------- Voting panel
+	local votePanel = UI.new("Frame", {
+		Name = "Voting", AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -16),
+		Size = UDim2.new(0, 420, 0, 130), BackgroundColor3 = UI.Colors.Panel, BackgroundTransparency = 0.05,
+		Visible = false, Parent = UI.Screen,
+	}, { UI.corner(16), UI.stroke(UI.Colors.Gold) })
+	local voteTitle = UI.label({
+		Position = UDim2.new(0, 10, 0, 8), Size = UDim2.new(1, -20, 0, 34), MaxTextSize = 28, Parent = votePanel,
+	})
+	local starRow = UI.new("Frame", {
+		Position = UDim2.new(0, 10, 0, 50), Size = UDim2.new(1, -20, 0, 66), BackgroundTransparency = 1, Parent = votePanel,
+	}, {
+		UI.new("UIListLayout", {
+			FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Center,
+			Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder,
+		}),
+	})
+	local ownRoomLabel = UI.label({
+		Position = UDim2.new(0, 10, 0, 56), Size = UDim2.new(1, -20, 0, 40), MaxTextSize = 22,
+		TextColor3 = UI.Colors.Muted, Text = "This is your room! Everyone else is voting...", Parent = votePanel,
+	})
+
+	local currentOwner = 0
+	local myStars = 0
+	local starButtons: { TextButton } = {}
+	local function paintStars()
+		for i, b in starButtons do
+			b.BackgroundColor3 = if i <= myStars then UI.Colors.Gold else UI.Colors.PanelLight
+		end
+	end
+	for i = 1, 5 do
+		starButtons[i] = UI.button({
+			Name = "Star" .. i, LayoutOrder = i, Text = "⭐", Size = UDim2.new(0, 66, 0, 66), MaxTextSize = 40, Parent = starRow,
+		}, function()
+			if currentOwner == 0 or currentOwner == player.UserId then
+				return
+			end
+			myStars = i
+			paintStars()
+			voteRemote:FireServer(currentOwner, i)
+		end)
+	end
+
+	local function showRoom()
+		local idx = state:GetAttribute("ShowcaseIndex")
+		if state:GetAttribute("Phase") ~= "Showcase" or typeof(idx) ~= "number" or idx < 1 then
+			return
+		end
+		local plotIndex = state:GetAttribute("ShowcasePlot")
+		local root = workspace:FindFirstChild("DesignToImpress")
+		local plots = root and root:FindFirstChild("Plots")
+		local plot = plots and typeof(plotIndex) == "number" and plots:FindFirstChild("Plot" .. plotIndex)
+		if plot then
+			lockCamera(plot:GetAttribute("CameraCFrame") :: CFrame)
+		end
+		currentOwner = (state:GetAttribute("ShowcaseOwner") or 0) :: number
+		myStars = 0
+		paintStars()
+		local name = (state:GetAttribute("ShowcaseOwnerName") or "?") :: string
+		local index = (state:GetAttribute("ShowcaseIndex") or 1) :: number
+		local total = (state:GetAttribute("ShowcaseTotal") or 1) :: number
+		local isMine = currentOwner == player.UserId
+		voteTitle.Text = string.format("%s's room  (%d/%d)", name, index, total)
+		starRow.Visible = not isMine
+		ownRoomLabel.Visible = isMine
+		votePanel.Visible = true
+	end
+	state:GetAttributeChangedSignal("ShowcaseIndex"):Connect(showRoom)
+
+	---------------------------------------------------------------- Results panel
+	local resultsPanel = UI.new("Frame", {
+		Name = "Results", AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -16, 0.55, 0),
+		Size = UDim2.new(0, 300, 0, 320), BackgroundColor3 = UI.Colors.Panel, BackgroundTransparency = 0.05,
+		Visible = false, Parent = UI.Screen,
+	}, { UI.corner(16), UI.stroke(UI.Colors.Gold) })
+	UI.label({
+		Position = UDim2.new(0, 10, 0, 8), Size = UDim2.new(1, -20, 0, 36), Text = "🏆 Results", TextColor3 = UI.Colors.Gold,
+		MaxTextSize = 30, Parent = resultsPanel,
+	})
+	local resultsList = UI.new("ScrollingFrame", {
+		Position = UDim2.new(0, 10, 0, 50), Size = UDim2.new(1, -20, 1, -60), BackgroundTransparency = 1,
+		CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.Y, ScrollBarThickness = 4, Parent = resultsPanel,
+	}, {
+		UI.new("UIListLayout", { Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder }),
+	})
+
+	resultsRemote.OnClientEvent:Connect(function(ranking: { any })
+		for _, child in resultsList:GetChildren() do
+			if child:IsA("GuiObject") then
+				child:Destroy()
+			end
+		end
+		for _, entry in ranking do
+			local medal = MEDALS[entry.Place] or ("#" .. entry.Place)
+			local mine = entry.UserId == player.UserId
+			UI.label({
+				LayoutOrder = entry.Place,
+				Size = UDim2.new(1, 0, 0, 44),
+				TextXAlignment = Enum.TextXAlignment.Left,
+				MaxTextSize = 18,
+				TextColor3 = if mine then UI.Colors.Gold else UI.Colors.Text,
+				Text = string.format("%s %s  %.1f★ (%d)\n+%d coins  +%d XP", medal, entry.Name, entry.Score, entry.Votes, entry.Coins, entry.XP),
+				Parent = resultsList,
+			})
+			if mine then
+				UI.toast(string.format("You placed %s! +%d coins", medal, entry.Coins), UI.Colors.Good)
+			end
+		end
+		resultsPanel.Visible = true
+		lockCamera(PODIUM_VIEW)
+	end)
+
+	local notifyRemote = remotes:WaitForChild("Notify") :: RemoteEvent
+	notifyRemote.OnClientEvent:Connect(function(message: string)
+		UI.toast(message)
+	end)
+
+	---------------------------------------------------------------- Phase changes
+	state:GetAttributeChangedSignal("Phase"):Connect(function()
+		local phase = state:GetAttribute("Phase")
+		if phase ~= "Showcase" then
+			votePanel.Visible = false
+			currentOwner = 0
+		end
+		if phase ~= "Results" then
+			resultsPanel.Visible = false
+		end
+		if phase ~= "Showcase" and phase ~= "Results" then
+			unlockCamera()
+		end
+	end)
+	-- Joining mid-showcase: jump straight to the current room.
+	showRoom()
+end
+
+return ShowcaseUI
+]]></ProtectedString></Properties></Item><Item class="ModuleScript" referent="RBX00000013"><Properties><string name="Name">UI</string><ProtectedString name="Source"><![CDATA[--!strict
+-- Tiny helpers for building UI in code, plus the shared ScreenGui and toast messages.
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+
+local UI = {}
+
+UI.Colors = {
+	Panel = Color3.fromRGB(35, 25, 55),
+	PanelLight = Color3.fromRGB(60, 45, 90),
+	Accent = Color3.fromRGB(255, 110, 180),
+	Gold = Color3.fromRGB(255, 205, 60),
+	Good = Color3.fromRGB(80, 200, 120),
+	Bad = Color3.fromRGB(230, 80, 80),
+	Text = Color3.fromRGB(255, 255, 255),
+	Muted = Color3.fromRGB(190, 180, 210),
+}
+
+function UI.new(className: string, props: { [string]: any }, children: { Instance }?): any
+	local inst = Instance.new(className)
+	local parent = props.Parent
+	for k, v in props do
+		if k ~= "Parent" then
+			(inst :: any)[k] = v
+		end
+	end
+	for _, child in children or {} do
+		child.Parent = inst
+	end
+	inst.Parent = parent
+	return inst
+end
+
+function UI.corner(radius: number?): UICorner
+	return UI.new("UICorner", { CornerRadius = UDim.new(0, radius or 12) })
+end
+
+function UI.stroke(color: Color3?, thickness: number?): UIStroke
+	return UI.new("UIStroke", {
+		Color = color or Color3.new(1, 1, 1),
+		Thickness = thickness or 2,
+		Transparency = 0.6,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+	})
+end
+
+function UI.label(props: { [string]: any }): TextLabel
+	local base: { [string]: any } = {
+		BackgroundTransparency = 1,
+		Font = Enum.Font.FredokaOne,
+		TextColor3 = UI.Colors.Text,
+		TextScaled = true,
+	}
+	for k, v in props do
+		base[k] = v
+	end
+	return UI.new("TextLabel", base, { UI.new("UITextSizeConstraint", { MaxTextSize = props.MaxTextSize or 32 }) })
+end
+
+function UI.button(props: { [string]: any }, onClick: () -> ()): TextButton
+	local base: { [string]: any } = {
+		BackgroundColor3 = UI.Colors.PanelLight,
+		Font = Enum.Font.FredokaOne,
+		TextColor3 = UI.Colors.Text,
+		TextScaled = true,
+		AutoButtonColor = true,
+	}
+	local maxText = props.MaxTextSize or 24
+	for k, v in props do
+		if k ~= "MaxTextSize" then
+			base[k] = v
+		end
+	end
+	local button = UI.new("TextButton", base, {
+		UI.corner(10),
+		UI.new("UITextSizeConstraint", { MaxTextSize = maxText }),
+		UI.new("UIPadding", {
+			PaddingLeft = UDim.new(0, 6), PaddingRight = UDim.new(0, 6),
+			PaddingTop = UDim.new(0, 4), PaddingBottom = UDim.new(0, 4),
+		}),
+	})
+	button.Activated:Connect(onClick) -- Activated fires for mouse, touch and gamepad
+	return button
+end
+
+local screen: ScreenGui = UI.new("ScreenGui", {
+	Name = "DesignToImpressUI",
+	ResetOnSpawn = false,
+	ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+	Parent = Players.LocalPlayer:WaitForChild("PlayerGui"),
+})
+UI.Screen = screen
+
+local toastHolder = UI.new("Frame", {
+	Name = "Toasts",
+	BackgroundTransparency = 1,
+	AnchorPoint = Vector2.new(0.5, 0),
+	Position = UDim2.new(0.5, 0, 0, 90),
+	Size = UDim2.new(0.6, 0, 0, 200),
+	Parent = screen,
+}, {
+	UI.new("UIListLayout", {
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		Padding = UDim.new(0, 6),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+	}),
+})
+
+function UI.toast(text: string, color: Color3?)
+	local toast = UI.label({
+		Text = text,
+		Size = UDim2.new(1, 0, 0, 36),
+		BackgroundTransparency = 0.15,
+		BackgroundColor3 = color or UI.Colors.Panel,
+		MaxTextSize = 22,
+		Parent = toastHolder,
+	})
+	UI.corner(10).Parent = toast
+	task.delay(2.5, function()
+		local tween = TweenService:Create(toast, TweenInfo.new(0.4), { BackgroundTransparency = 1, TextTransparency = 1 })
+		tween:Play()
+		tween.Completed:Wait()
+		toast:Destroy()
+	end)
+end
+
+return UI
+]]></ProtectedString></Properties></Item></Item></Item></Item></roblox>
